@@ -187,7 +187,7 @@ const CategoryPage = () => {
                     width={100}
                     height={100}
                     alt={vendor.id}
-                    className="w-full h-28 object-fill rounded-md"
+                    className="w-full h-36 object-fill rounded-md"
                   />
 
                   <div className="p-4 space-y-2 bg-card rounded-xl">
