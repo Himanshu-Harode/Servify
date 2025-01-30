@@ -92,9 +92,9 @@ const HomepageServiceCategory = () => {
   )
 
   return (
-    <div className="md:p-4 py-10 w-[85%] mx-auto">
+    <div className="md:p-4 py-10 md:w-[85%] mx-auto">
       {/* Service Categories */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 px-10 md:p-0 lg:grid-cols-6 gap-4">
         {services.slice(0, 5).map((service) => (
           <div
             key={service.id}
@@ -136,7 +136,7 @@ const HomepageServiceCategory = () => {
         ) : paginatedVendors.length === 0 ? (
           <p className="text-gray-500">No vendors available.</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
             {paginatedVendors.map((vendor) => (
               <Link href={`/search/${vendor.id}`} key={vendor.id}>
                 <div className="shadow-lg bg-secondary rounded-xl hover:border-2 hover:border-primary border-2 ">
@@ -144,20 +144,20 @@ const HomepageServiceCategory = () => {
                     src={vendor.profileImage}
                     width={100}
                     height={100}
-                    className="w-full h-52 rounded-t-xl object-center"
+                    className="w-full h-36 md:h-52 rounded-t-xl object-center"
                     alt="Vendor Image"
                   />
                   <div className="p-4 space-y-2 bg-card rounded-xl">
-                    <span className="text-xs rounded-3xl py-2 px-4 text-primary font-bold bg-purple-300">
+                    <span className="text-xs rounded-3xl px-2 py-1 md:py-2 md:px-4 text-primary font-bold bg-purple-300">
                       {vendor.service}
                     </span>
-                    <h3 className="font-bold text-2xl">
+                    <h3 className="font-bold md:text-2xl">
                       {vendor.organizationName}
                     </h3>
-                    <h3 className="font-semibold text-primary text-base">
+                    <h3 className="font-semibold text-primary text-sm">
                       {vendor.name}
                     </h3>
-                    <p className="text-gray-500 line-clamp-1 text-sm">
+                    <p className="text-gray-500 line-clamp-1 text-xs">
                       {vendor.address}
                     </p>
                   </div>

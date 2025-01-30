@@ -6,6 +6,15 @@ import { collection, getDocs } from "firebase/firestore"
 import Loading from "../loading"
 import Header from "@/components/Header"
 import Image from "next/image"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
+import { Menu } from "lucide-react"
 
 const CategoryPage = () => {
   const searchParams = useSearchParams()
@@ -96,9 +105,9 @@ const CategoryPage = () => {
   return (
     <div className="">
       <Header />
-      <div className="flex my-10 gap-5">
+      <div className="flex gap-3 my-5 md:my-10 md:gap-5 flex-col md:flex-row">
         {/* Sidebar with all services */}
-        <div className="w-64 p-4 border rounded-xl bg-card h-full">
+        <div className="w-64 p-4 hidden md:block border rounded-xl bg-card h-full">
           <h2 className="text-2xl font-extrabold mb-4 text-primary">
             Service Categories
           </h2>
@@ -119,9 +128,42 @@ const CategoryPage = () => {
             ))}
           </ul>
         </div>
+            {/* Mobile Services Menu  */}
+        <div className="md:hidden">
+          <Sheet>
+            <SheetTrigger>
+              <Menu />
+            </SheetTrigger>
+            <SheetContent side="left">
+              <SheetHeader>
+                <SheetTitle className="text-2xl font-extrabold mb-4 text-primary">
+                  Service Categories
+                </SheetTitle>
+                <SheetDescription>
+                  <ul className="flex flex-col gap-2 ">
+                    {services.map((service) => (
+                      <li key={service.id} className="border-2  rounded-md">
+                        <button
+                          onClick={() => handleServiceClick(service.name)}
+                          className={`block w-full text-left p-2 rounded-md ${
+                            selectedService === service.name
+                              ? "bg-purple-100 text-primary border-2 dark:bg-card border-primary dark:text-primary"
+                              : "hover:border-2 hover:border-primary hover:bg-card hover:dark:text-primary"
+                          }`}
+                        >
+                          {service.name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </SheetDescription>
+              </SheetHeader>
+            </SheetContent>
+          </Sheet>
+        </div>
 
         {/* Vendor List */}
-        <div className="flex-1 p-6 bg-card rounded-xl border">
+        <div className="md:flex-1 h-screen p-2 md:p-6 bg-card rounded-xl border">
           <h1 className="text-2xl font-bold">
             {selectedService ? `Vendors for ${selectedService}` : "All Vendors"}
           </h1>
@@ -133,7 +175,7 @@ const CategoryPage = () => {
           ) : filteredVendors.length === 0 ? (
             <p className="text-gray-500">No vendors available.</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4 ">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4 ">
               {filteredVendors.map((vendor) => (
                 <div
                   key={vendor.id}
@@ -145,17 +187,17 @@ const CategoryPage = () => {
                     width={100}
                     height={100}
                     alt={vendor.id}
-                    className="w-full h-44 object-fill rounded-md"
+                    className="w-full h-28 object-fill rounded-md"
                   />
 
                   <div className="p-4 space-y-2 bg-card rounded-xl">
                     <span className="text-xs rounded-3xl py-2 px-4 text-primary font-semibold bg-purple-300">
                       {vendor.service}
                     </span>
-                    <h3 className="font-bold text-xl">
+                    <h3 className="font-bold ">
                       {vendor.organizationName}
                     </h3>
-                    <h3 className="font-semibold text-primary">
+                    <h3 className="font-semibold text-sm text-primary">
                       {vendor.name}
                     </h3>
                     <p className="text-gray-500 line-clamp-1 text-xs">

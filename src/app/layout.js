@@ -21,6 +21,7 @@ export const metadata = {
   title: "Servify - Local Sercive Application",
   description:
     "Servify is a local service application that connects users with local service providers.",
+    icons: "/logo.svg",
 }
 
 export default function RootLayout({ children }) {
