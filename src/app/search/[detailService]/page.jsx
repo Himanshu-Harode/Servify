@@ -134,35 +134,48 @@ const ServiceDetail = () => {
             </h3>
           </div>
 
-            {/* Mobile View of Top */}
+          {/* Mobile View of Top */}
 
           <div className="md:hidden flex flex-col gap-2">
-            <span className="flex justify-center items-center py-0.5 w-20  text-sm font-bold text-primary bg-purple-300 rounded-full">
+            <span className="py-1 w-fit px-4 text-sm font-bold text-primary bg-purple-300 rounded-full inline-block">
               {service}
             </span>
+
             <h3 className="text-xl font-bold">{organizationName}</h3>
-            <div className="flex justify-center items-center gap-2">
-              <MapPin className="w-14 h-5 text-purple-400" />
-              <p className="flex  items-center gap-2 text-sm overflow-hidden  ">
-                {address}
-              </p>
-            </div>
-            <h3 className="flex text-sm  items-center gap-3 ">
-              <Mail className="w-5 h-5 text-purple-400" />
-              {email}
-            </h3>
-            <h3 className="flex text-sm  items-center gap-3  ">
-              <User className=" text-purple-400 w-5 h-5" />
-              {name}
-            </h3>
-            <h3 className="flex text-sm  items-center gap-3 ">
-              <Phone className=" w-5 h-5 text-purple-400" />
-              {mobile}
-            </h3>
-            <h3 className="flex text-sm  items-center gap-3">
-              <Clock2 className=" w-5 h-5 text-purple-400" />
-              Available: {availableTime}
-            </h3>
+            <table>
+              <tbody>
+                <tr className="">
+                  <td className="pr-1">
+                    <MapPin className="w-5 h-5 text-purple-400" />
+                  </td>
+                  <td>{address}</td>
+                </tr>
+                <tr>
+                  <td className="pr-1">
+                    <Mail className="w-5 h-5 text-purple-400" />
+                  </td>
+                  <td>{email}</td>
+                </tr>
+                <tr>
+                  <td className="pr-1">
+                    <User className="w-5 h-5 text-purple-400" />
+                  </td>
+                  <td>{name}</td>
+                </tr>
+                <tr>
+                  <td className="pr-1">
+                    <Phone className="w-5 h-5 text-purple-400" />
+                  </td>
+                  <td>{mobile}</td>
+                </tr>
+                <tr>
+                  <td className="pr-1">
+                    <Clock2 className="w-5 h-5 text-purple-400" />
+                  </td>
+                  <td>{availableTime}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
           {/* Right Side - Contact & Availability */}
           <div className="md:mt-20 md:flex flex-col md:items-end space-y-4 hidden ">
@@ -209,22 +222,34 @@ const ServiceDetail = () => {
                 {similarServices.slice(0, 3).map((service) => (
                   <Link href={`/search/${service.id}`} key={service.id}>
                     <div className="flex shadow-md gap-2 rounded-md p-2 cursor-pointer hover:shadow-lg">
-                      <Image
-                        src={service.profileImage || "/placeholder.png"}
-                        width={100}
-                        height={100}
-                        alt={service.name}
-                        className="rounded-md h-28 w-auto object-cover"
-                      />
-                      <div className="space-y-3">
-                        <h3 className="font-extrabold text-sm">
-                          {service.organizationName}
-                        </h3>
-                        <p className="text-sm text-primary">{service.name}</p>
-                        <p className="text-sm line-clamp-2">
-                          {service.address}
-                        </p>
-                      </div>
+                      <table className="w-full table-auto">
+                        <tbody className="w-full">
+                          <tr className="w-full">
+                            <td className="w-1/3">
+                              <Image
+                                src={service.profileImage || "/placeholder.png"}
+                                width={100}
+                                height={100}
+                                alt={service.name}
+                                className="rounded-md h-28 w-28 object-cover"
+                              />
+                            </td>
+                            <td className="w-2/3 pl-4">
+                              <div className="space-y-2 mt-2">
+                                <h3 className="font-extrabold text-sm">
+                                  {service.organizationName}
+                                </h3>
+                                <p className="text-sm text-primary">
+                                  {service.name}
+                                </p>
+                                <p className="text-sm line-clamp-2">
+                                  {service.address}
+                                </p>
+                              </div>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
                   </Link>
                 ))}
@@ -257,32 +282,44 @@ const ServiceDetail = () => {
             </div>
           </div>
           <div className="md:hidden">
-              <h3 className="font-bold my-5 text-2xl">Similar Services</h3>
-              <div className="">
-                {similarServices.slice(0, 3).map((service) => (
-                  <Link href={`/search/${service.id}`} key={service.id}>
-                    <div className="flex shadow-md gap-2 rounded-md p-2 cursor-pointer hover:shadow-lg">
-                      <Image
-                        src={service.profileImage || "/placeholder.png"}
-                        width={100}
-                        height={100}
-                        alt={service.name}
-                        className="rounded-md h-28 w-28 object-cover"
-                      />
-                      <div className="space-y-2 mt-2  ">
-                        <h3 className="font-extrabold text-sm">
-                          {service.organizationName}
-                        </h3>
-                        <p className="text-sm text-primary">{service.name}</p>
-                        <p className="text-sm line-clamp-2">
-                          {service.address}
-                        </p>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+            <h3 className="font-bold my-5 text-2xl">Similar Services</h3>
+            <div className="">
+              {similarServices.slice(0, 3).map((service) => (
+                <Link href={`/search/${service.id}`} key={service.id}>
+                  <div className="flex shadow-md gap-2 rounded-md p-2 cursor-pointer hover:shadow-lg">
+                    <table className="w-full table-auto">
+                      <tbody className="w-full">
+                        <tr className="w-full">
+                          <td className="w-1/3">
+                            <Image
+                              src={service.profileImage || "/placeholder.png"}
+                              width={100}
+                              height={100}
+                              alt={service.name}
+                              className="rounded-md h-28 w-28 object-cover"
+                            />
+                          </td>
+                          <td className="w-2/3 pl-4">
+                            <div className="space-y-2 mt-2">
+                              <h3 className="font-extrabold text-sm">
+                                {service.organizationName}
+                              </h3>
+                              <p className="text-sm text-primary">
+                                {service.name}
+                              </p>
+                              <p className="text-sm line-clamp-2">
+                                {service.address}
+                              </p>
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </Link>
+              ))}
             </div>
+          </div>
         </div>
       </div>
     </div>
