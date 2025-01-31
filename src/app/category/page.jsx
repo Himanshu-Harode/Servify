@@ -163,7 +163,7 @@ const CategoryPage = () => {
         </div>
 
         {/* Vendor List */}
-        <div className="md:flex-1 h-screen p-2 md:p-6 bg-card rounded-xl border">
+        <div className="md:flex-1 h-full p-2 md:p-6 bg-card rounded-xl border">
           <h1 className="text-2xl font-bold">
             {selectedService ? `Vendors for ${selectedService}` : "All Vendors"}
           </h1>
@@ -175,7 +175,7 @@ const CategoryPage = () => {
           ) : filteredVendors.length === 0 ? (
             <p className="text-gray-500">No vendors available.</p>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4 ">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-4 ">
               {filteredVendors.map((vendor) => (
                 <div
                   key={vendor.id}

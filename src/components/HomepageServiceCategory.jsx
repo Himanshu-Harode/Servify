@@ -173,8 +173,8 @@ const HomepageServiceCategory = () => {
               key={index}
               onClick={() => handlePageChange(index + 1)}
               disabled={loading}
-              className={`px-3 py-1 rounded-md ${
-                currentVendorPage === index + 1 ? "bg-primary text-white" : "bg-gray-200"
+              className={`px-5 py-1 rounded-md ${
+                currentVendorPage === index + 1 ? "bg-primary text-white" : "bg-gray-200 text-black"
               } hover:bg-gray-300`}
             >
               {index + 1}
