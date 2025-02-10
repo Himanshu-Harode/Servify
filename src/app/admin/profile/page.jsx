@@ -26,7 +26,7 @@ const AdminProfile = () => {
     state: "",
     country: "",
     pincode: "",
-    profileImage: "https://github.com/shadcn.png", // Default profile image
+    profileImage: null, // Default profile image
   })
 
   useEffect(() => {

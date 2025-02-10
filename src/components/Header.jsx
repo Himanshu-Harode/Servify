@@ -10,10 +10,13 @@ import { useEffect, useState } from "react"
 import { onAuthStateChanged } from "firebase/auth"
 import { auth, firestore } from "@/context/Firebase"
 import Loading from "@/app/loading"
+import { motion, AnimatePresence } from "framer-motion"
+import { Menu, X } from "lucide-react"
 
 const Header = () => {
   const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true) // Track loading state for Firestore data
+  const [loading, setLoading] = useState(true)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -22,74 +25,130 @@ const Header = () => {
         try {
           const userDocRef = doc(firestore, "users", user.uid)
           const userDocSnap = await getDoc(userDocRef)
-
-          if (userDocSnap.exists()) {
-            const userData = userDocSnap.data()
-
-            setUser(userData)
-          } else {
-            console.log("User data not found in Firestore")
-          }
+          if (userDocSnap.exists()) setUser(userDocSnap.data())
         } catch (error) {
           console.error("Error fetching user data:", error)
+        } finally {
+          setLoading(false)
         }
-        setLoading(false)
       } else {
-        setUser(null)
         router.push("/login")
       }
     })
-
     return () => unsubscribe()
   }, [router])
 
-  if (loading) {
-    return <Loading />
-  }
+  const navLinks = [
+    { name: "Home", path: "/" },
+    { name: "My Bookings", path: "/myBooking" },
+    { name: "About Us", path: "/aboutUs" }
+  ]
 
-  if (!user) {
-    return null
-  }
+  if (loading) return <Loading />
 
   return (
-    <div className="md:p-5 py-5 px-3 shadow-lg  dark:shadow-sm dark:shadow-gray-800  flex justify-between">
-      <div className="flex items-center gap-8">
-        <Image
-          loading="lazy"
-          src="/logo.svg"
-          alt="logo"
-          className="w-[200px]"
-          width={100}
-          height={100}
-        />
+    <motion.header
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="sticky top-0 z-50 bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700 shadow-sm"
+    >
+      <div className="max-w-7xl mx-auto px-4 md:py-2 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo and Mobile Menu Button */}
+          <div className="flex items-center gap-8">
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="flex items-center gap-2"
+            >
+              <Image
+                src="/logo.svg"
+                alt="logo"
+                width={100}
+                height={100}
+                className="w-32 md:w-40"
+              />
+            </motion.div>
 
-        <div className="lg:flex hidden items-center gap-6">
-          <h1 className="hover:scale-105  hover:text-primary cursor-pointer transition-all duration-300 ease-in-out">
-            <Link href="/"> Home</Link>
-          </h1>
-          <h1 className="hover:scale-105 hover:text-primary cursor-pointer transition-all duration-300 ease-in-out">
-            <Link href="/myBooking"> My Bookings</Link>
-          </h1>
-          <h1 className="hover:scale-105 hover:text-primary cursor-pointer transition-all duration-300 ease-in-out">
-            <Link href="/aboutUs"> About Us</Link>
-          </h1>
-        </div>
-      </div>
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center gap-6">
+              {navLinks.map((link) => (
+                <motion.div
+                  key={link.path}
+                  whileHover={{ y: -2 }}
+                >
+                  <Link
+                    href={link.path}
+                    className="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-purple-400 transition-colors font-medium"
+                  >
+                    {link.name}
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          </div>
 
-      <div className="flex justify-center  ml-5 md:ml-0 gap-2 md:gap-10 items-center">
-        <div className="hidden md:block">
-          {" "}
-          <ModeToggle />
+          {/* Right Section */}
+          <div className="flex items-center gap-4">
+            <div className="hidden md:block">
+              <ModeToggle />
+            </div>
+
+            {user ? (
+              <ProfileMenu />
+            ) : (
+              <motion.div whileHover={{ scale: 1.05 }}>
+                <Button
+                  asChild
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                >
+                  <Link href="/login">Get Started</Link>
+                </Button>
+              </motion.div>
+            )}
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="lg:hidden p-2 text-gray-600 dark:text-gray-300"
+            >
+              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
-        {user ? (
-          <ProfileMenu />
-        ) : (
-          <Button className="text-white">
-            <Link href={"login"}>Get Started</Link>
-          </Button>
-        )}
+
+        {/* Mobile Menu */}
+        <AnimatePresence>
+          {isMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="lg:hidden py-4 space-y-4"
+            >
+              {navLinks.map((link) => (
+                <motion.div
+                  key={link.path}
+                  whileHover={{ x: 5 }}
+                >
+                  <Link
+                    href={link.path}
+                    className="block px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-purple-400"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {link.name}
+                  </Link>
+                </motion.div>
+              ))}
+              <div className="px-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <ModeToggle />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    </div>
+    </motion.header>
   )
 }
+
 export default Header

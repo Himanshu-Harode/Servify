@@ -34,7 +34,7 @@ export default function RootLayout({ children }) {
           enableSystem
           disableTransitionOnChange
         >
-          <div className="mx-3 md:mx-16  ">{children}</div>
+          <div className=" ">{children}</div>
         </ThemeProvider>
       </body>
     </html>

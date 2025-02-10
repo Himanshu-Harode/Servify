@@ -1,13 +1,13 @@
 "use client"
-
 import { useEffect, useState } from "react"
 import { firestore } from "@/context/Firebase"
 import { collection, getDocs, query, orderBy } from "firebase/firestore"
 import { Button } from "@/components/ui/button"
-import { Slack } from "lucide-react"
+import { Plus, ArrowRight, ArrowLeft, Star, MapPin } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-import ComponentLoader from "./ui/componentLoader"
+import { Skeleton } from "@/components/ui/skeleton"
+import { motion, AnimatePresence } from "framer-motion"
 
 const HomepageServiceCategory = () => {
   const [services, setServices] = useState([])
@@ -22,7 +22,10 @@ const HomepageServiceCategory = () => {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const servicesQuery = query(collection(firestore, "service"), orderBy("id", "asc"))
+        const servicesQuery = query(
+          collection(firestore, "service"),
+          orderBy("id", "asc")
+        )
         const querySnapshot = await getDocs(servicesQuery)
         const servicesData = querySnapshot.docs.map((doc) => ({
           id: doc.id,
@@ -71,7 +74,9 @@ const HomepageServiceCategory = () => {
       setSelectedService(serviceName)
       setLoading(true)
       setTimeout(() => {
-        setFilteredVendors(vendors.filter((vendor) => vendor.service === serviceName))
+        setFilteredVendors(
+          vendors.filter((vendor) => vendor.service === serviceName)
+        )
         setCurrentVendorPage(1)
         setLoading(false)
       }, 500)
@@ -94,104 +99,238 @@ const HomepageServiceCategory = () => {
     currentVendorPage * vendorsPerPage
   )
 
+  const fadeIn = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.3 } },
+  }
+
+  const stagger = {
+    visible: { transition: { staggerChildren: 0.1 } },
+  }
+
+  const cardAnimation = {
+    hidden: { scale: 0.95, opacity: 0 },
+    visible: { scale: 1, opacity: 1 },
+  }
   return (
-    <div className="md:p-4 py-10 md:w-[85%] mx-auto">
-      {/* Service Categories */}
-      <div className="grid grid-cols-2 md:grid-cols-4 px-10 md:p-0 lg:grid-cols-6 gap-4">
-        {services.slice(0, 5).map((service) => (
-          <div
-            key={service.id}
-            className={`flex justify-center items-center flex-col p-4 w-28 h-24 dark:bg-card shadow-md rounded-lg cursor-pointer ${
-              selectedService === service.name ? "border-2 border-blue-500" : ""
-            }`}
-            onClick={() => handleServiceClick(service.name)}
-          >
-            <img src={service.image} alt={service.name} className="h-12 object-cover rounded-lg" />
-            <h2 className="text-primary capitalize font-semibold mt-2 text-sm">{service.name}</h2>
+    <section className="py-24 px-4 sm:px-6 lg:px-20 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="max-w-7xl mx-auto">
+        {/* Service Categories */}
+        <div className="mb-20">
+          <div className="flex items-center justify-between mb-10">
+            <h2 className="text-4xl font-extrabold text-gray-900 dark:text-white">
+              Explore{" "}
+              <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+                Services
+              </span>
+            </h2>
+            <Link
+              href="/category"
+              className="group flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+            >
+              <span className="mr-2 font-medium">Discover More</span>
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
           </div>
-        ))}
-        <Link href="/category">
-          <div className="flex justify-center items-center flex-col p-4 w-28 h-24 dark:bg-card shadow-md rounded-lg cursor-pointer">
-            <Slack className="h-20 w-20 object-cover rounded-lg" />
-            <h2 className="font-semibold text-primary mt-2 text-sm text-center">Categories</h2>
-          </div>
-        </Link>
-      </div>
 
-      {/* Display Vendors */}
-      <div className="mt-6">
-        <h2 className="text-xl font-bold">
-          {selectedService ? `Vendors for ${selectedService}` : "All Vendors"}
-        </h2>
-
-        {loading ? (
-          <div className="flex justify-center h-96 items-center mt-4">
-            <ComponentLoader />
-          </div>
-        ) : paginatedVendors.length === 0 ? (
-          <p className="text-gray-500">No vendors available.</p>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-4">
-            {paginatedVendors.map((vendor) => (
-              <Link href={`/search/${vendor.id}`} key={vendor.id}>
-                <div className="shadow-lg bg-secondary rounded-xl hover:border-2 hover:border-primary border-2">
-                  <Image
-                    src={vendor.profileImage}
-                    width={100}
-                    height={100}
-                    className="w-full h-36 md:h-40 rounded-t-xl object-cover"
-                    alt="Vendor Image"
-                  />
-                  <div className="p-4 space-y-2 bg-card rounded-xl">
-                    <span className="text-xs rounded-3xl px-2 py-1 md:py-2 md:px-4 text-primary font-bold bg-purple-300">
-                      {vendor.service}
-                    </span>
-                    <h3 className="font-bold md:text-2xl">{vendor.organizationName}</h3>
-                    <h3 className="font-semibold text-primary text-sm">{vendor.name}</h3>
-                    <p className="text-gray-500 line-clamp-1 text-xs">{vendor.address}</p>
+          <div className="flex space-x-5 pb-5 overflow-x-auto scrollbar-hide">
+            {services.slice(0, 5).map((service) => (
+              <motion.button
+                key={service.id}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleServiceClick(service.name)}
+                className={`flex-shrink-0 p-5 rounded-2xl backdrop-blur-lg border transition-all duration-300 ${
+                  selectedService === service.name
+                    ? "bg-gradient-to-br from-blue-500/90 to-purple-600/90 shadow-2xl border-transparent"
+                    : "bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-700/80 border-gray-200 dark:border-gray-700 shadow-sm"
+                }`}
+                style={{ minWidth: "180px" }}
+              >
+                <div className="flex flex-col items-center space-y-3">
+                  <div
+                    className={`p-3 rounded-2xl ${
+                      selectedService === service.name
+                        ? "bg-white/20 backdrop-blur-sm"
+                        : "bg-blue-100/50 dark:bg-blue-900/30"
+                    }`}
+                  >
+                    <Image
+                      src={service.image}
+                      alt={service.name}
+                      width={48}
+                      height={48}
+                      className="object-contain"
+                      priority
+                    />
                   </div>
+                  <span
+                    className={`text-lg font-bold ${
+                      selectedService === service.name
+                        ? "text-white"
+                        : "text-gray-800 dark:text-gray-200"
+                    }`}
+                  >
+                    {service.name}
+                  </span>
                 </div>
-              </Link>
+              </motion.button>
             ))}
           </div>
-        )}
-      </div>
-
-      {/* Pagination Controls */}
-      {totalVendorPages > 1 && (
-        <div className="flex justify-center items-center mt-6 space-x-2">
-          <Button
-            onClick={() => handlePageChange(currentVendorPage - 1)}
-            disabled={currentVendorPage === 1 || loading}
-            className="px-3 py-1 border rounded-md text-primary bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
-          >
-            Previous
-          </Button>
-
-          {[...Array(totalVendorPages)].map((_, index) => (
-            <Button
-              key={index}
-              onClick={() => handlePageChange(index + 1)}
-              disabled={loading}
-              className={`px-5 py-1 rounded-md ${
-                currentVendorPage === index + 1 ? "bg-primary text-white" : "bg-gray-200 text-black"
-              } hover:bg-gray-300`}
-            >
-              {index + 1}
-            </Button>
-          ))}
-
-          <Button
-            onClick={() => handlePageChange(currentVendorPage + 1)}
-            disabled={currentVendorPage === totalVendorPages || loading}
-            className="px-3 py-1 border rounded-md text-primary bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
-          >
-            Next
-          </Button>
         </div>
-      )}
-    </div>
+
+        {/* Vendor Section */}
+        <div className="space-y-10">
+          <h2 className="text-4xl font-extrabold text-gray-900 dark:text-white">
+            {selectedService
+              ? `Top ${selectedService} Experts`
+              : "Featured Professionals"}
+          </h2>
+
+          <AnimatePresence mode="wait">
+            {loading ? (
+              <motion.div
+                key="loading"
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                variants={fadeIn}
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+              >
+                {[...Array(8)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden"
+                  >
+                    <Skeleton className="h-60 w-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800" />
+                    <div className="p-5 space-y-4">
+                      <Skeleton className="h-5 w-2/3 bg-gray-200 dark:bg-gray-700 rounded-full" />
+                      <div className="flex justify-between">
+                        <Skeleton className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded-full" />
+                        <Skeleton className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded-full" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="content"
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                variants={stagger}
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+              >
+                <AnimatePresence>
+                  {paginatedVendors.map((vendor) => (
+                    <motion.div
+                      key={vendor.id}
+                      variants={cardAnimation}
+                      initial="hidden"
+                      animate="visible"
+                      exit="hidden"
+                      whileHover={{ y: -8 }}
+                      className="group relative h-[300px] rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300"
+                    >
+                      <Link
+                        href={`/search/${vendor.id}`}
+                        className="absolute inset-0 w-full h-full"
+                      >
+                        {/* Image Container */}
+                        <div className="relative w-full h-full">
+                          <Image
+                            src={
+                              vendor?.profileImage || "/placeholder-user.png"
+                            }
+                            alt={vendor.name}
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            className="object-cover transform group-hover:scale-105 transition-transform duration-300"
+                            priority
+                          />
+
+                          {/* Gradient Overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/30 to-transparent" />
+
+                          {/* Content Overlay */}
+                          <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                            {/* Top Badges */}
+                            <div className="flex justify-between items-start mb-4">
+                              <span className="bg-blue-500/90 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm font-semibold">
+                                {vendor.service}
+                              </span>
+                              <div className="flex items-center justify-center bg-gray-900/80 backdrop-blur-sm px-3 py-1 rounded-full">
+                                <Star className="w-4 h-4 text-yellow-400 mr-1" />
+                                <span className="text-sm font-semibold">
+                                  {vendor.rating || "4.5"}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Main Content */}
+                            <div className="space-y-3">
+                              <h3 className="text-2xl font-bold truncate">
+                                {vendor.organizationName}
+                              </h3>
+                              <div className="flex items-center justify-between text-sm">
+                              <div className="flex items-center text-sm opacity-90 font-medium">
+                                <MapPin className="w-4 h-4 mr-1.5" />
+                                <span className="truncate">
+                                  {vendor.city || "N/A"}
+                                </span>
+                              </div>
+                            
+                                <span className="bg-white/10 text-xs backdrop-blur-sm px-3 py-1 rounded-full">
+                                  🕑 {vendor.availableTime || "Flexible"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Pagination */}
+          {totalVendorPages > 1 && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center justify-center gap-4 mt-12"
+            >
+              <Button
+                onClick={() => handlePageChange(currentVendorPage - 1)}
+                disabled={currentVendorPage === 1 || loading}
+                variant="outline"
+                className="rounded-full px-6 gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Previous
+              </Button>
+              
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                Page {currentVendorPage} of {totalVendorPages}
+              </div>
+
+              <Button
+                onClick={() => handlePageChange(currentVendorPage + 1)}
+                disabled={currentVendorPage === totalVendorPages || loading}
+                variant="outline"
+                className="rounded-full px-6 gap-2"
+              >
+                Next
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </motion.div>
+          )}
+        </div>
+      </div>
+    </section>
   )
 }
-
 export default HomepageServiceCategory

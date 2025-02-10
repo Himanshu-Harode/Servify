@@ -1,10 +1,11 @@
 import Header from "@/components/Header"
+import Booking from "./booking"
 
 const MyBooking = () => {
   return (
     <div>
       <Header />
-      MyBooking
+      <Booking/>
     </div>
   )
 }

@@ -1,40 +1,33 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { MoonIcon, SunIcon } from "lucide-react"
 import { useTheme } from "next-themes"
+import { MoonIcon, SunIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react"
 
 export function ModeToggle() {
-  const { theme, setTheme } = useTheme("system")
-  const [currentTheme, setCurrentTheme] = useState("")
+  const { resolvedTheme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
 
+  // Ensure component is mounted before accessing the theme (prevents hydration mismatch)
   useEffect(() => {
-    // Set the initial theme to "system" by default
-    setCurrentTheme(theme)
-  }, [ theme])
+    setMounted(true)
+  }, [])
 
-  const toggleTheme = () => {
-    if (currentTheme === "light") {
-      setTheme("dark")
-      setCurrentTheme("dark")
-    } else {
-      setTheme("light")
-      setCurrentTheme("light")
-    }
-  }
+  if (!mounted) return null
 
   return (
     <Button
       variant="outline"
       size="icon"
-      onClick={toggleTheme}
+      onClick={() => setTheme(resolvedTheme === "light" ? "dark" : "light")}
       aria-label="Toggle theme"
+      className="rounded-xl bg-white/80 dark:bg-gray-700 backdrop-blur-lg transition-all"
     >
-      {currentTheme === "light" ? (
+      {resolvedTheme === "light" ? (
         <MoonIcon className="h-[1.2rem] w-[1.2rem] " />
       ) : (
-        <SunIcon className="h-[1.2rem] w-[1.2rem]" />
+        <SunIcon className="h-[1.2rem] w-[1.2rem] " />
       )}
     </Button>
   )

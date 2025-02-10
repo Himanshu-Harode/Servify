@@ -70,11 +70,10 @@ export default function Home() {
 
   return (
     <ProtectedRoute roleRequired={["user"]}>
-      <div className="pb-20">
+      <div className=" ">
         <Header />
         <HeroSection />
         <HomepageServiceCategory />
-        {/* <HomepageServiceSort/> */}
       </div>
     </ProtectedRoute>
   )
