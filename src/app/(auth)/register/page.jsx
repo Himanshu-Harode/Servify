@@ -120,59 +120,74 @@ const RegisterPage = () => {
   }
 
   return (
-    <div className="flex items-center justify-center h-screen ">
-      <Card className="">
+    <div className="flex items-center justify-center bg-background my-10 md:m-0 h-screen px-3">
+      <Card className="w-[400px] md:w-[600px] md:px-6 rounded-xl border-2">
         <CardHeader className="space-y-2 text-center">
-          <CardTitle>Register</CardTitle>
-          <CardDescription>Sign up to get started</CardDescription>
+          <CardTitle className="text-primary text-3xl">Register</CardTitle>
+          <CardDescription className="text-base">
+            Sign up to get started
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
             <div className="grid w-full items-center gap-4">
               <div className="flex flex-col space-y-1.5">
                 <div className="grid md:grid-cols-2 gap-4">
-                  <div className="">
-                    <Label htmlFor="Firstname">Firstname</Label>
+                  <div className="space-y-2">
+                    <Label className="text-lg" htmlFor="Firstname">
+                      Firstname
+                    </Label>
                     <Input
                       onChange={(e) => setFirstName(e.target.value)}
                       value={firstName}
                       id="Firstname"
                       placeholder="Enter Firstname"
+                      className="dark:placeholder:text-white/50 rounded-[5px]" // Added border-radius here
                     />
                   </div>
-                  <div className="">
-                    <Label htmlFor="Lastname">Lastname</Label>
+                  <div className="space-y-2">
+                    <Label className="text-lg" htmlFor="Lastname">
+                      Lastname
+                    </Label>
                     <Input
                       onChange={(e) => setLastName(e.target.value)}
                       value={lastName}
                       id="Lastname"
                       placeholder="Enter Lastname"
+                      className="dark:placeholder:text-white/50 rounded-[5px]" 
                     />
                   </div>
                 </div>
               </div>
               <div className="flex flex-col space-y-1.5 w-full">
                 <div className="grid md:grid-cols-2 gap-4">
-                  <div className="">
-                    <Label htmlFor="role">Choose Your Role</Label>
+                  <div className="space-y-2">
+                    <Label className="text-lg" htmlFor="role">
+                      Choose Your Role
+                    </Label>
                     <Select
                       onValueChange={(e) => setRole(e)}
                       id="role"
                       value={role}
                     >
-                      <SelectTrigger className="">
-                        <SelectValue placeholder="Select Role" />
+                      <SelectTrigger className="placeholder:text-black/50 dark:text-white/50 rounded-[5px]">
+                        <SelectValue
+                          placeholder="Select Role"
+                          className="placeholder:text-white/50"
+                        />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
+                      <SelectContent className="bg-white dark:bg-background">
+                        <SelectGroup className="">
                           <SelectItem value="user">User</SelectItem>
                           <SelectItem value="vendor">Vendor</SelectItem>
                         </SelectGroup>
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="">
-                    <Label htmlFor="Address">Address</Label>
+                  <div className="space-y-2">
+                    <Label className="text-lg" htmlFor="Address">
+                      Address
+                    </Label>
                     <Input
                       value={address}
                       id="Address"
@@ -182,29 +197,36 @@ const RegisterPage = () => {
                           ? "Fetching your location..."
                           : "Address will be auto-filled"
                       }
+                      className="dark:placeholder:text-white/50 rounded-[5px]" // Added border-radius here
                     />
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="Email">Email</Label>
+              <div className="flex flex-col space-y-2">
+                <Label className="text-lg" htmlFor="Email">
+                  Email
+                </Label>
                 <Input
                   onChange={(e) => setEmail(e.target.value)}
                   value={email}
                   id="Email"
                   placeholder="Enter Email"
+                  className="dark:placeholder:text-white/50 rounded-[5px]" // Added border-radius here
                 />
               </div>
-              <div className="flex flex-col space-y-1.5">
+              <div className="flex flex-col space-y-2">
                 <div className="grid md:grid-cols-2 gap-4">
-                  <div className="relative">
-                    <Label htmlFor="Password">Password</Label>
+                  <div className="relative space-y-2">
+                    <Label className="text-lg" htmlFor="Password">
+                      Password
+                    </Label>
                     <Input
                       type={showPassword ? "text" : "password"}
                       onChange={(e) => setPassword(e.target.value)}
                       value={password}
                       id="Password"
                       placeholder="Enter Password"
+                      className="dark:placeholder:text-white/50 rounded-[5px]" // Added border-radius here
                     />
                     <button
                       type="button"
@@ -214,14 +236,17 @@ const RegisterPage = () => {
                       {showPassword ? <EyeNoneIcon /> : <EyeOpenIcon />}
                     </button>
                   </div>
-                  <div className="relative">
-                    <Label htmlFor="ConfirmPassword">Confirm Password</Label>
+                  <div className="relative space-y-2">
+                    <Label className="text-lg" htmlFor="ConfirmPassword">
+                      Confirm Password
+                    </Label>
                     <Input
                       type={showConfirmPassword ? "text" : "password"}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       value={confirmPassword}
                       id="ConfirmPassword"
                       placeholder="Enter Password"
+                      className="dark:placeholder:text-white/50 rounded-[5px]" // Added border-radius here
                     />
                     <button
                       type="button"
@@ -237,7 +262,9 @@ const RegisterPage = () => {
               </div>
               {error && <p className="text-red-500">{error}</p>}
               {message && <p className="text-green-500">{message}</p>}
-              <Button className="w-full text-white">Create Account</Button>
+              <Button className="w-full text-white rounded-[5px]">
+                Create Account
+              </Button>
             </div>
           </form>
         </CardContent>

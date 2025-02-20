@@ -6,6 +6,7 @@ const VendorPage = () => {
     <ProtectedRoute roleRequired={["vendor"]}>
       <Header></Header>
       <div>VendorPage</div>
+      
     </ProtectedRoute>
   )
 }

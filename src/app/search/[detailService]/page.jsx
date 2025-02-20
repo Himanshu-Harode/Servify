@@ -30,6 +30,20 @@ import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
 import { Skeleton } from "@/components/ui/skeleton"
 import { motion } from "framer-motion"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+} from "@/components/ui/carousel"
+import { DialogDescription } from "@radix-ui/react-dialog"
 
 const ServiceDetail = () => {
   const { detailService } = useParams()
@@ -37,6 +51,7 @@ const ServiceDetail = () => {
   const { toast } = useToast()
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(null)
   const [similarServices, setSimilarServices] = useState([])
   const [error, setError] = useState(null)
   const [currentUser, setCurrentUser] = useState(null)
@@ -332,14 +347,15 @@ const ServiceDetail = () => {
                     <motion.div
                       key={index}
                       whileHover={{ scale: 1.03 }}
-                      className="aspect-square relative overflow-hidden border-2 rounded-xl border-muted"
+                      className="aspect-square relative overflow-hidden border-2 rounded-xl border-muted cursor-pointer"
+                      onClick={() => setSelectedImageIndex(index)}
                     >
                       <Image
                         src={image}
                         alt={`Service image ${index + 1}`}
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        className="object-cover "
+                        className="object-cover"
                         priority
                       />
                     </motion.div>
@@ -359,45 +375,92 @@ const ServiceDetail = () => {
               Similar Services
             </h2>
             <div className="space-y-4">
-              {similarServices.slice(0, 3).map((service) => (
-                <Link href={`/search/${service.id}`} key={service.id}>
-                  <motion.div
-                    whileHover={{ translateX: 5 }}
-                    className="flex items-center gap-4 p-4 bg-card  hover:shadow-md transition-shadow border border-muted rounded-xl"
-                  >
-                    <div className="relative w-20 h-20 shrink-0">
-                      <Image
-                        src={service.profileImage || "/placeholder-user.png"}
-                        alt={service.organizationName}
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        className="rounded-xl object-cover"
-                        priority
-                      />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">
-                        {service.organizationName}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        <User2 className="inline w-4 h-4 mr-1" />
-                        {service.firstName + " " + service.lastName}
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        <MapPin className="inline w-4 h-4 mr-1" />
-                        {service.address}
-                      </p>
-                      <p className="text-sm text-primary mt-2">
-                        {service.service}
-                      </p>
-                    </div>
-                  </motion.div>
-                </Link>
-              ))}
+              {similarServices.length > 0 ? (
+                similarServices.slice(0, 3).map((service) => (
+                  <Link href={`/search/${service.id}`} key={service.id}>
+                    <motion.div
+                      whileHover={{ translateX: 5 }}
+                      className="flex items-center gap-4 p-4 bg-card hover:shadow-md transition-shadow border border-muted rounded-xl"
+                    >
+                      <div className="relative w-20 h-20 shrink-0">
+                        <Image
+                          src={service.profileImage || "/placeholder-user.png"}
+                          alt={service.organizationName}
+                          fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          className="rounded-xl object-cover"
+                          priority
+                        />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-foreground">
+                          {service.organizationName}
+                        </h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          <User2 className="inline w-4 h-4 mr-1" />
+                          {service.firstName + " " + service.lastName}
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          <MapPin className="inline w-4 h-4 mr-1" />
+                          {service.address}
+                        </p>
+                        <p className="text-sm text-primary mt-2">
+                          {service.service}
+                        </p>
+                      </div>
+                    </motion.div>
+                  </Link>
+                ))
+              ) : (
+                <p className="text-center text-muted-foreground">
+                  No similar services available.
+                </p>
+              )}
             </div>
           </div>
         </div>
       </motion.div>
+
+      {/* Image Courosel Dialog */}
+      <Dialog
+        open={selectedImageIndex !== null}
+        onOpenChange={(open) => !open && setSelectedImageIndex(null)}
+      >
+        <DialogContent className="max-w-4xl p-0 bg-transparent border-none">
+          <Carousel
+            opts={{
+              startIndex: selectedImageIndex || 0,
+              loop: true,
+            }}
+            className="w-full relative"
+          >
+              <DialogTitle className="text-center hidden">{selectedImageIndex+1}</DialogTitle>
+              <DialogDescription className="text-center hidden">{selectedImageIndex+1}</DialogDescription>
+            <CarouselContent>
+              {serviceImages?.map((image, index) => (
+                <CarouselItem key={index}>
+                  <div className="aspect-video relative">
+                    <Image
+                      src={image}
+                      alt={`Service image ${index + 1}`}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 80vw"
+                      className="object-contain bg-black/10 dark:bg-white/10 rounded-lg"
+                      priority
+                    />
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <div className="absolute left-12 md:left-4 top-1/2 -translate-y-1/2">
+              <CarouselPrevious className="h-12 w-12 bg-background/50 hover:bg-background/80" />
+            </div>
+            <div className="absolute right-12 md:right-4 top-1/2 -translate-y-1/2">
+              <CarouselNext className="h-12 w-12 bg-background/50 hover:bg-background/80" />
+            </div>
+          </Carousel>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

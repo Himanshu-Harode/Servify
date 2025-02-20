@@ -38,7 +38,6 @@ const Booking = () => {
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
       if (!user) return
 
-      // Active bookings query
       const q = query(
         collection(firestore, "bookings"),
         where("userId", "==", user.uid),
@@ -53,7 +52,6 @@ const Booking = () => {
         setBookings(activeBookings)
       })
 
-      // Completed bookings query
       const completedQ = query(
         collection(firestore, "bookings"),
         where("userId", "==", user.uid),
@@ -68,7 +66,6 @@ const Booking = () => {
         setCompletedBookings(completed)
       })
 
-      // All bookings query
       const allQ = query(
         collection(firestore, "bookings"),
         where("userId", "==", user.uid)
@@ -131,6 +128,9 @@ const Booking = () => {
     )
   }
 
+  // Sorting function
+  const sortByDate = (a, b) => b.createdAt?.seconds - a.createdAt?.seconds
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <Tabs defaultValue="bookings">
@@ -165,7 +165,7 @@ const Booking = () => {
                   .map((_, i) => (
                     <Skeleton key={i} className="h-32 rounded-lg" />
                   ))
-              ) : bookings.length === 0 ? (
+              ) : bookings.sort(sortByDate).length === 0 ? (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -174,7 +174,7 @@ const Booking = () => {
                   No active bookings found
                 </motion.div>
               ) : (
-                bookings.map((booking) => (
+                bookings.sort(sortByDate).map((booking) => (
                   <motion.div
                     key={booking.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -182,6 +182,7 @@ const Booking = () => {
                     exit={{ opacity: 0 }}
                     className="bg-card rounded-lg p-4 shadow-sm border"
                   >
+                    {/* ... rest of active bookings content ... */}
                     <div className="flex items-center justify-between">
                       {/* Image and Vendor Information */}
                       <div className="flex items-center gap-4">
@@ -223,6 +224,7 @@ const Booking = () => {
                               variant="destructive"
                               size="sm"
                               onClick={() => setSelectedBooking(booking)}
+                              className="rounded-[5px]"
                             >
                               Cancel
                             </Button>
@@ -239,12 +241,14 @@ const Booking = () => {
                                 onChange={(e) =>
                                   setCancellationReason(e.target.value)
                                 }
+                                className="rounded-[5px]"
                               />
                               <Button
                                 onClick={() =>
                                   handleStatusUpdate(booking.id, "cancelled")
                                 }
                                 disabled={!cancellationReason}
+                                className="rounded-[5px]"
                               >
                                 Submit Cancellation
                               </Button>
@@ -253,8 +257,8 @@ const Booking = () => {
                         </Dialog>
 
                         <Button
-                          variant="secondary"
-                          size="sm" className=""
+                          // variant="secondary"
+                          size="sm" className="rounded-[5px] bg-primary"
                           onClick={() =>
                             handleStatusUpdate(booking.id, "completed")
                           }
@@ -280,7 +284,7 @@ const Booking = () => {
                   .map((_, i) => (
                     <Skeleton key={i} className="h-32 rounded-lg" />
                   ))
-              ) : completedBookings.length === 0 ? (
+              ) : completedBookings.sort(sortByDate).length === 0 ? (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -289,13 +293,14 @@ const Booking = () => {
                   No completed bookings
                 </motion.div>
               ) : (
-                completedBookings.map((booking) => (
+                completedBookings.sort(sortByDate).map((booking) => (
                   <motion.div
                     key={booking.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="bg-card rounded-lg p-4 shadow-sm border"
                   >
+                    {/* ... rest of completed bookings content ... */}
                     <div className="flex items-center justify-between">
                       {/* Image and Vendor Information */}
                       <div className="flex items-center gap-4">
@@ -336,7 +341,7 @@ const Booking = () => {
           </div>
         </TabsContent>
 
-        {/* All Bookings Tab (Only Completed/Cancelled) */}
+        {/* All Bookings Tab */}
         <TabsContent value="all">
           <div className="mt-6 space-y-4">
             <AnimatePresence>
@@ -346,9 +351,9 @@ const Booking = () => {
                   .map((_, i) => (
                     <Skeleton key={i} className="h-32 rounded-lg" />
                   ))
-              ) : allBookings.filter((b) =>
-                  ["completed", "cancelled"].includes(b.status)
-                ).length === 0 ? (
+              ) : allBookings
+                  .filter((b) => ["completed", "cancelled"].includes(b.status))
+                  .sort(sortByDate).length === 0 ? (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -359,6 +364,7 @@ const Booking = () => {
               ) : (
                 allBookings
                   .filter((b) => ["completed", "cancelled"].includes(b.status))
+                  .sort(sortByDate)
                   .map((booking) => (
                     <motion.div
                       key={booking.id}
@@ -366,6 +372,7 @@ const Booking = () => {
                       animate={{ opacity: 1, y: 0 }}
                       className="bg-card rounded-lg p-4 shadow-sm border"
                     >
+                      {/* ... rest of all bookings content ... */}
                       <div className="flex items-center justify-between">
                         {/* Image and Vendor Information */}
                         <div className="flex items-center gap-4">

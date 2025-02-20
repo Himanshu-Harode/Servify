@@ -10,7 +10,7 @@ const HeroSection = () => {
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.8 }}
-        className="absolute inset-0 bg-gradient-to-br from-blue-100/20 to-purple-100/20 dark:from-gray-800/50 dark:to-gray-900/50"
+        className="absolute inset-0 bg-gradient-to-br from-blue-100/20 to-purple-100/20 dark:from-gray-800/50 dark:to-gray-900/50"s
       />
 
       {/* Main content */}

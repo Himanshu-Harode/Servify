@@ -5,30 +5,30 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import Loading from "@/app/loading"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ModeToggle } from "@/components/ToggleTheme"
+import { FiCamera, FiUploadCloud, FiCheck, FiClock, FiInfo, FiBriefcase, FiMapPin, FiPhone, FiUser } from "react-icons/fi"
+import { ToastProvider, Toast, ToastTitle, ToastDescription, ToastClose, ToastViewport } from "@radix-ui/react-toast"
+import { X } from "react-feather"
+import { motion } from "framer-motion"
 
 // Firebase imports
 import { firestore, storage, auth } from "@/context/Firebase"
 import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { onAuthStateChanged } from "firebase/auth"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { ModeToggle } from "@/components/ToggleTheme"
 
 const VendorProfile = () => {
   const [isClient, setIsClient] = useState(false)
   const [loading, setLoading] = useState(true)
   const [uploadingImage, setUploadingImage] = useState(false)
-  const [submitting, setSubmitting] = useState(false) // Loader for form submission
+  const [submitting, setSubmitting] = useState(false)
   const [userId, setUserId] = useState(null)
+  const [open, setOpen] = useState(false)
+  const [toastDetails, setToastDetails] = useState(null)
+  const [services, setServices] = useState([])
+  
   const [formData, setFormData] = useState({
     name: "",
     mobile: "",
@@ -49,7 +49,6 @@ const VendorProfile = () => {
 
   useEffect(() => {
     setIsClient(true)
-
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUserId(user.uid)
@@ -57,7 +56,6 @@ const VendorProfile = () => {
       }
       setLoading(false)
     })
-
     return () => unsubscribe()
   }, [])
 
@@ -66,7 +64,7 @@ const VendorProfile = () => {
       const userDoc = await getDoc(doc(firestore, "users", uid))
       if (userDoc.exists()) {
         const data = userDoc.data()
-        setFormData((prev) => ({
+        setFormData(prev => ({
           ...prev,
           ...data,
           name: `${data.firstName || ""} ${data.lastName || ""}`.trim(),
@@ -97,13 +95,11 @@ const VendorProfile = () => {
     if (files.length === 0 || !userId) return
 
     setUploadingImage(true)
-
     try {
       const newImageUrls = await Promise.all(
-        files.map((file) => handleImageUpload(file, "serviceImages"))
+        files.map(file => handleImageUpload(file, "serviceImages"))
       )
-
-      const filteredUrls = newImageUrls.filter((url) => url !== null)
+      const filteredUrls = newImageUrls.filter(url => url !== null)
 
       await setDoc(
         doc(firestore, "users", userId),
@@ -111,12 +107,18 @@ const VendorProfile = () => {
         { merge: true }
       )
 
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         serviceImages: [...prev.serviceImages, ...filteredUrls],
       }))
     } catch (error) {
       console.error("Error uploading images:", error)
+      setToastDetails({
+        title: "Upload Failed",
+        description: "Failed to upload service images",
+        variant: "destructive",
+      })
+      setOpen(true)
     } finally {
       setUploadingImage(false)
     }
@@ -127,21 +129,24 @@ const VendorProfile = () => {
     if (!file || !userId) return
 
     setUploadingImage(true)
-
     try {
       const profileImageUrl = await handleImageUpload(file, "profileImages")
-
       if (profileImageUrl) {
         await setDoc(
           doc(firestore, "users", userId),
           { profileImage: profileImageUrl },
           { merge: true }
         )
-
-        setFormData((prev) => ({ ...prev, profileImage: profileImageUrl }))
+        setFormData(prev => ({ ...prev, profileImage: profileImageUrl }))
       }
     } catch (error) {
       console.error("Error uploading profile image:", error)
+      setToastDetails({
+        title: "Upload Failed",
+        description: "Failed to upload profile image",
+        variant: "destructive",
+      })
+      setOpen(true)
     } finally {
       setUploadingImage(false)
     }
@@ -151,8 +156,31 @@ const VendorProfile = () => {
     e.preventDefault()
     if (!userId) return
 
-    setSubmitting(true)
+    if (
+      !formData.name ||
+      !formData.mobile ||
+      !formData.city ||
+      !formData.state ||
+      !formData.country ||
+      !formData.pincode ||
+      !formData.address ||
+      !formData.service.length ||
+      !formData.organizationAddress ||
+      !formData.organizationMobileNumber ||
+      !formData.availableTime ||
+      !formData.organizationName ||
+      !formData.description
+    ) {
+      setToastDetails({
+        title: "Form Incomplete",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      })
+      setOpen(true)
+      return
+    }
 
+    setSubmitting(true)
     const nameParts = formData.name.trim().split(" ")
     const firstName = nameParts[0] || ""
     const lastName = nameParts.slice(1).join(" ") || ""
@@ -160,27 +188,33 @@ const VendorProfile = () => {
     try {
       await setDoc(
         doc(firestore, "users", userId),
-        {
-          ...formData,
-          firstName,
-          lastName,
-        },
+        { ...formData, firstName, lastName },
         { merge: true }
       )
-      alert("Profile updated successfully!")
+      setToastDetails({
+        title: "Profile Updated",
+        description: "Vendor profile updated successfully",
+        variant: "default",
+      })
+      setOpen(true)
     } catch (error) {
       console.error("Error updating profile:", error)
+      setToastDetails({
+        title: "Update Failed",
+        description: "Failed to update vendor profile",
+        variant: "destructive",
+      })
+      setOpen(true)
     } finally {
       setSubmitting(false)
     }
   }
-  const [services, setServices] = useState([])
 
   useEffect(() => {
     const fetchServices = async () => {
       try {
         const querySnapshot = await getDocs(collection(firestore, "service"))
-        const servicesData = querySnapshot.docs.map((doc) => ({
+        const servicesData = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
         }))
@@ -189,235 +223,281 @@ const VendorProfile = () => {
         console.error("Error fetching services:", error)
       }
     }
-
     fetchServices()
   }, [])
 
   if (!isClient || loading) return <Loading />
-
   return (
-    <div className="md:w-[70%] w-[95%] bg-[#eaeaea] rounded-md dark:bg-[#27272a] mx-auto flex flex-col my-5 p-5 md:p-10">
-      <div className="md:hidden border border-foreground rounded-md p-1 h-12 w-12  flex justify-center items-center">
-        <ModeToggle />
-      </div>
-      <form onSubmit={handleSubmit}>
-        <div className="relative w-24 h-24 rounded-full mx-auto bg-white overflow-hidden flex justify-center items-center ">
-          {uploadingImage ? (
-            <div className="animate-pulse w-full h-full bg-gray-300 dark:bg-gray-700 rounded-full" />
-          ) : (
-            <Avatar className="w-full h-full flex">
-              <AvatarImage alt="User Profile" src={formData.profileImage} />
-            </Avatar>
-          )}
-          <input
-            type="file"
-            accept="image/*"
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            onChange={handleProfileImageChange}
-          />
-        </div>
-
-        <div className="h-[1px] my-10 w-full bg-white"></div>
-        {/* User Information */}
-        <h1 className="text-xl font-extrabold text-primary">
-          Personal Details
-        </h1>
-        <div className="my-10 grid md:grid-cols-2 gap-x-10 gap-y-5">
-          <div className="space-y-2">
-            <Label>Name</Label>
-            <Input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Enter Full Name"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Mobile Number</Label>
-            <Input
-              type="number"
-              name="mobile"
-              value={formData.mobile}
-              onChange={handleChange}
-              placeholder="Enter Mobile Number"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Address</Label>
-            <Input
-              type="text"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              placeholder="Enter Address"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>City</Label>
-            <Input
-              type="text"
-              name="city"
-              value={formData.city}
-              onChange={handleChange}
-              placeholder="Enter City"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>State</Label>
-            <Input
-              type="text"
-              name="state"
-              value={formData.state}
-              onChange={handleChange}
-              placeholder="Enter State"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Country</Label>
-            <Input
-              type="text"
-              name="country"
-              value={formData.country}
-              onChange={handleChange}
-              placeholder="Enter Country"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Pincode</Label>
-            <Input
-              type="number"
-              name="pincode"
-              value={formData.pincode}
-              onChange={handleChange}
-              placeholder="Enter Pincode"
-            />
-          </div>
-        </div>
-        <div className="h-[1px] my-10 w-full bg-white"></div>
-        {/* Business Information */}
-        <h1 className="text-xl font-extrabold text-primary">
-          Organization Details
-        </h1>
-        <div className="my-10 flex flex-col md:grid md:grid-cols-2 gap-x-10 gap-y-5">
-          <div className="space-y-2">
-            <Label>Select Service</Label>
-            <Select
-              value={formData.service}
-              onValueChange={(value) => {
-                setFormData({
-                  ...formData,
-                  service: value, // This will update the `service` field as an array of selected values
-                })
-              }}
-              multiple
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select Services" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup className="h-96 overflow-auto">
-                  <SelectLabel className="border-b-2 mb-1 text-base font-bold">
-                    Services
-                  </SelectLabel>
-                  {services.map((service) => (
-                    <SelectItem
-                      key={service.id}
-                      value={service.name}
-                    >
-                      {service.name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Organization Name</Label>
-            <Input
-              type="text"
-              name="organizationName"
-              value={formData.organizationName}
-              onChange={handleChange}
-              placeholder="Enter Organization Name"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Organization Address</Label>
-            <Input
-              type="text"
-              name="organizationAddress"
-              value={formData.organizationAddress}
-              onChange={handleChange}
-              placeholder="Enter Organization Address"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Organization Contact Number</Label>
-            <Input
-              type="number"
-              name="organizationMobileNumber"
-              value={formData.organizationMobileNumber}
-              onChange={handleChange}
-              placeholder="Enter Organization Contact Number"
-            />
-          </div>
-          <div className="space-y-2 ">
-            <Label>About Your Service</Label>
-            <Textarea
-              rows={4}
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              placeholder="Tell us about your service."
-            />
-          </div>
-          <div className="space-y-2 ">
-            <Label>About Your Company</Label>
-            <Input
-              type="text"
-              name="availableTime"
-              value={formData.availableTime}
-              onChange={handleChange}
-              placeholder="Enter Available Time"
-            />
-            
-          </div>
-          <div className="space-y-2 col-span-2">
-            {/* Service Images Input Field */}
-            <div className="my-5">
-              <Label>Service Images</Label>
-              <input
-                type="file"
-                accept="image/*"
-                className="flex border-2 dark:border-white  rounded-md mt-2"
-                onChange={handleImageChange}
-                multiple
-              />
-              {formData.serviceImages.length > 0 && (
-                <div className="mt-5">
-                  <h3>Selected Images:</h3>
-                  <div className="grid grid-cols-6 gap-2">
-                    {formData.serviceImages.map((image, index) => (
-                      <img
-                        key={index}
-                        src={image}
-                        alt={`Service Image ${index + 1}`}
-                        className="w-24 h-24 object-cover rounded-md"
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+    <ToastProvider>
+      <div className="min-h-screen bg-gradient-to-br from-[#fafafa] to-[#f0f0f0] dark:from-[#0a0a0a] dark:to-[#1a1a1a] md:py-12 px-4 py-5 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-4xl mx-auto bg-card rounded-2xl shadow-xl dark:shadow-none border dark:border-gray-800"
+        >
+          <div className="flex items-center justify-between p-6 border-b dark:border-gray-800">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Vendor Profile
+            </h1>
+            <div className="block md:hidden">
+              <ModeToggle />
             </div>
           </div>
-        </div>
-        <Button className="w-full mt-10 text-white" type="submit">
-          Update Profile
-        </Button>
-      </form>
-    </div>
+
+          <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-6 md:space-y-8">
+            {/* Profile Image Section */}
+            <motion.div
+              className="flex flex-col items-center gap-4"
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+            >
+              <div className="relative group">
+                <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 p-1 shadow-lg">
+                  <div className="relative w-full h-full rounded-full overflow-hidden border-4 border-white dark:border-gray-900">
+                    {uploadingImage ? (
+                      <div className="absolute inset-0 flex items-center justify-center bg-background/50 dark:bg-white/50">
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ repeat: Infinity, duration: 1 }}
+                          className="text-primary "
+                        >
+                          <FiUploadCloud size={36} />
+                        </motion.div>
+                      </div>
+                    ) : (
+                      <Avatar className="w-full h-full">
+                        <AvatarImage
+                          src={formData.profileImage}
+                          className="object-cover"
+                        />
+                      </Avatar>
+                    )}
+                  </div>
+                  <div className="absolute bottom-0 right-0 bg-white dark:bg-gray-800 p-2 rounded-full shadow-sm border dark:border-gray-700">
+                    <FiCamera className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                  </div>
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  onChange={handleProfileImageChange}
+                />
+              </div>
+            </motion.div>
+
+            {/* Personal Details */}
+            <div className="space-y-6 md:space-y-8">
+              <motion.div className="border-b pb-6">
+                <h2 className="text-lg md:text-xl font-bold text-primary mb-4 md:mb-6 flex items-center gap-2">
+                  <FiUser className="w-4 h-4 md:w-5 md:h-5" />
+                  Personal Details
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                  {[
+                    { label: "Name", name: "name", icon: <FiUser /> },
+                    { label: "Mobile Number", name: "mobile", icon: <FiPhone /> },
+                    { label: "Address", name: "address", icon: <FiMapPin /> },
+                    { label: "City", name: "city" },
+                    { label: "State", name: "state" },
+                    { label: "Country", name: "country" },
+                    { label: "Pincode", name: "pincode" },
+                  ].map((field, index) => (
+                    <motion.div
+                      key={field.name}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="space-y-2"
+                    >
+                      <Label className="text-sm font-medium text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                        {field.icon}
+                        {field.label}
+                      </Label>
+                      <Input
+                        name={field.name}
+                        value={formData[field.name]}
+                        onChange={handleChange}
+                        className="h-12 rounded-[5px] bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500/50"
+                        placeholder={`Enter ${field.label}`}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* Organization Details */}
+              <motion.div className="border-b pb-6">
+                <h2 className="text-lg md:text-xl font-bold text-primary mb-4 md:mb-6 flex items-center gap-2">
+                  <FiBriefcase className="w-4 h-4 md:w-5 md:h-5" />
+                  Organization Details
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                  <div className="space-y-2 col-span-2">
+                    <Label className="flex items-center gap-2 ">
+                      <FiInfo />
+                      Service Category
+                    </Label>
+                    <Select className="rounded-xl"
+                      value={formData.service}
+                      onValueChange={(value) => setFormData({ ...formData, service: value })}
+                    >
+                      <SelectTrigger className="h-12">
+                        <SelectValue placeholder="Select Services" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-96 bg-white dark:bg-gray-800 border-none shadow-lg  scrollbar-hide">
+                        <SelectGroup>
+                          <SelectLabel className="text-base  font-semibold bg-gray-100 dark:bg-gray-700 p-2">
+                            Available Services
+                          </SelectLabel>
+                          {services.map(service => (
+                            <SelectItem
+                              key={service.id}
+                              value={service.name}
+                              className="hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200"
+                            >
+                              {service.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {[
+                    { label: "Organization Name", name: "organizationName" },
+                    { label: "Organization Address", name: "organizationAddress" },
+                    { label: "Contact Number", name: "organizationMobileNumber" },
+                    { label: "Available Time", name: "availableTime", icon: <FiClock /> },
+                  ].map((field, index) => (
+                    <motion.div
+                      key={field.name}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="space-y-2 col-span-2 md:col-span-1 mb-5 "
+                    >
+                      <Label className="text-sm font-medium text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                        {field.icon}
+                        {field.label}
+                      </Label>
+                      <Input
+                       name={field.name}
+                       type={field.type}
+                       value={formData[field.name]}
+                       onChange={handleChange}
+                       className="h-12 rounded-[5px] bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500/50"
+                       placeholder={`Enter ${field.label}`}
+                      />
+                    </motion.div>
+                  ))}
+
+                  <motion.div
+                    className="space-y-2 col-span-2"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    <Label className="flex items-center gap-2">
+                      <FiInfo />
+                      Service Description
+                    </Label>
+                    <Textarea
+                      rows={6}
+                      name="description"
+                      value={formData.description}
+                      onChange={handleChange}
+                      className="min-h-[150px] bg-gray-50  dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500/50 "
+                      placeholder="Describe your services in detail..."
+                    />
+                  </motion.div>
+
+                  <motion.div
+                    className="space-y-2 col-span-2"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    <Label className="flex items-center gap-2">
+                      <FiCamera />
+                      Service Images
+                    </Label>
+                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-4">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="w-full"
+                        onChange={handleImageChange}
+                        multiple
+                      />
+                      {formData.serviceImages.length > 0 && (
+                        <div className="mt-4 grid grid-cols-3 md:grid-cols-6 gap-2">
+                          {formData.serviceImages.map((image, index) => (
+                            <motion.div
+                              key={index}
+                              initial={{ scale: 0.9 }}
+                              animate={{ scale: 1 }}
+                              className="relative group"
+                            >
+                              <img
+                                src={image}
+                                alt={`Service ${index + 1}`}
+                                className="w-full h-24 object-cover rounded-lg"
+                              />
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                </div>
+              </motion.div>
+            </div>
+
+            <motion.div
+              className="flex justify-end"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Button
+                type="submit"
+                className="h-12 w-full md:w-auto px-8 rounded-[5px] bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold gap-2"
+                disabled={uploadingImage || submitting}
+              >
+                <FiCheck className="w-5 h-5" />
+                {submitting ? "Updating..." : "Update Profile"}
+              </Button>
+            </motion.div>
+          </form>
+        </motion.div>
+
+        <Toast
+          open={open}
+          onOpenChange={setOpen}
+          duration={5000}
+          className="border-none shadow-xl rounded-[5px] px-4 py-2 md:p-4 data-[state=open]:animate-slideIn data-[state=closed]:animate-hide"
+          style={{
+            background: toastDetails?.variant === "destructive"
+              ? "red"
+              : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+          }}
+        >
+          <div className="flex gap-3 items-center">
+            <div className="flex-1">
+              <ToastTitle className="text-white font-bold">{toastDetails?.title}</ToastTitle>
+              <ToastDescription className="text-gray-100 text-sm mt-1">
+                {toastDetails?.description}
+              </ToastDescription>
+            </div>
+            <ToastClose className="text-gray-100 hover:text-white rounded-full p-1">
+              <X className="h-4 w-4" />
+            </ToastClose>
+          </div>
+        </Toast>
+
+        <ToastViewport className="fixed bottom-4 right-4 flex flex-col gap-2 z-[9999] w-[380px] max-w-[calc(100%-32px)]" />
+      </div>
+    </ToastProvider>
   )
 }
+
 
 export default VendorProfile

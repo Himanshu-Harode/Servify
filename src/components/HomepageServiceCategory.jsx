@@ -113,71 +113,54 @@ const HomepageServiceCategory = () => {
     visible: { scale: 1, opacity: 1 },
   }
   return (
-    <section className="py-24 px-4 sm:px-6 lg:px-20 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+    <section className="pb-24 pt-5 px-4 sm:px-6 lg:px-20 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <div className="max-w-7xl mx-auto">
         {/* Service Categories */}
         <div className="mb-20">
-          <div className="flex items-center justify-between mb-10">
-            <h2 className="text-4xl font-extrabold text-gray-900 dark:text-white">
-              Explore{" "}
-              <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-                Services
-              </span>
-            </h2>
-            <Link
-              href="/category"
-              className="group flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-            >
-              <span className="mr-2 font-medium">Discover More</span>
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
+      <div className="flex items-center justify-between mb-10">
+        <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white">
+          Explore {" "}
+          <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+            Services
+          </span>
+        </h2>
+      </div>
 
-          <div className="flex space-x-5 pb-5 overflow-x-auto scrollbar-hide">
-            {services.slice(0, 5).map((service) => (
-              <motion.button
-                key={service.id}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => handleServiceClick(service.name)}
-                className={`flex-shrink-0 p-5 rounded-2xl backdrop-blur-lg border transition-all duration-300 ${
-                  selectedService === service.name
-                    ? "bg-gradient-to-br from-blue-500/90 to-purple-600/90 shadow-2xl border-transparent"
-                    : "bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-700/80 border-gray-200 dark:border-gray-700 shadow-sm"
-                }`}
-                style={{ minWidth: "180px" }}
-              >
-                <div className="flex flex-col items-center space-y-3">
-                  <div
-                    className={`p-3 rounded-2xl ${
-                      selectedService === service.name
-                        ? "bg-white/20 backdrop-blur-sm"
-                        : "bg-blue-100/50 dark:bg-blue-900/30"
-                    }`}
-                  >
-                    <Image
-                      src={service.image}
-                      alt={service.name}
-                      width={48}
-                      height={48}
-                      className="object-contain"
-                      priority
-                    />
-                  </div>
-                  <span
-                    className={`text-lg font-bold ${
-                      selectedService === service.name
-                        ? "text-white"
-                        : "text-gray-800 dark:text-gray-200"
-                    }`}
-                  >
-                    {service.name}
-                  </span>
-                </div>
-              </motion.button>
-            ))}
-          </div>
-        </div>
+      {/* Responsive Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5">
+        {services.slice(0, 5).map((service) => (
+          <motion.button
+            key={service.id}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => handleServiceClick(service.name)}
+            className={`p-5 rounded-2xl backdrop-blur-lg border transition-all duration-300 flex flex-col items-center space-y-3 shadow-lg ${
+              selectedService === service.name
+                ? "bg-gradient-to-br from-blue-500/90 to-purple-600/90 border-transparent text-white"
+                : "bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
+            }`}
+          >
+            <div className="p-3 rounded-2xl bg-blue-100/50 dark:bg-blue-900/30">
+              <Image src={service.image} alt={service.name} width={48} height={48} className="object-contain" priority />
+            </div>
+            <span className="text-lg font-bold">{service.name}</span>
+          </motion.button>
+        ))}
+
+        {/* Discover More Card */}
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="p-5 flex flex-col items-center justify-center rounded-2xl backdrop-blur-lg border transition-all duration-300 shadow-lg bg-gradient-to-br 
+          dark:from-blue-500/90 dark:to-purple-600/90 dark:text-white"
+        >
+          <Link href="/category" className="flex flex-col items-center space-y-2">
+            <ArrowRight className="w-10 h-10" />
+            <span className="text-lg font-bold line-clamp-1">Categories</span>
+          </Link>
+        </motion.div>
+      </div>
+    </div>
 
         {/* Vendor Section */}
         <div className="space-y-10">
@@ -274,13 +257,13 @@ const HomepageServiceCategory = () => {
                                 {vendor.organizationName}
                               </h3>
                               <div className="flex items-center justify-between text-sm">
-                              <div className="flex items-center text-sm opacity-90 font-medium">
-                                <MapPin className="w-4 h-4 mr-1.5" />
-                                <span className="truncate">
-                                  {vendor.city || "N/A"}
-                                </span>
-                              </div>
-                            
+                                <div className="flex items-center text-sm opacity-90 font-medium">
+                                  <MapPin className="w-4 h-4 mr-1.5" />
+                                  <span className="truncate">
+                                    {vendor.city || "N/A"}
+                                  </span>
+                                </div>
+
                                 <span className="bg-white/10 text-xs backdrop-blur-sm px-3 py-1 rounded-full">
                                   🕑 {vendor.availableTime || "Flexible"}
                                 </span>
@@ -298,7 +281,7 @@ const HomepageServiceCategory = () => {
 
           {/* Pagination */}
           {totalVendorPages > 1 && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="flex items-center justify-center gap-4 mt-12"
@@ -312,7 +295,7 @@ const HomepageServiceCategory = () => {
                 <ArrowLeft className="w-4 h-4" />
                 Previous
               </Button>
-              
+
               <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                 Page {currentVendorPage} of {totalVendorPages}
               </div>

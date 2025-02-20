@@ -41,7 +41,7 @@ const Header = () => {
   const navLinks = [
     { name: "Home", path: "/" },
     { name: "My Bookings", path: "/myBooking" },
-    { name: "About Us", path: "/aboutUs" }
+    { name: "About Us", path: "/aboutUs" },
   ]
 
   if (loading) return <Loading />
@@ -67,16 +67,14 @@ const Header = () => {
                 width={100}
                 height={100}
                 className="w-32 md:w-40"
+                priority
               />
             </motion.div>
 
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center gap-6">
               {navLinks.map((link) => (
-                <motion.div
-                  key={link.path}
-                  whileHover={{ y: -2 }}
-                >
+                <motion.div key={link.path} whileHover={{ y: -2 }}>
                   <Link
                     href={link.path}
                     className="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-purple-400 transition-colors font-medium"
@@ -127,10 +125,7 @@ const Header = () => {
               className="lg:hidden py-4 space-y-4"
             >
               {navLinks.map((link) => (
-                <motion.div
-                  key={link.path}
-                  whileHover={{ x: 5 }}
-                >
+                <motion.div key={link.path} whileHover={{ x: 5 }}>
                   <Link
                     href={link.path}
                     className="block px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-purple-400"
