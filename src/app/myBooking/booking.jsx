@@ -18,12 +18,15 @@ import {
   query,
   where,
   onSnapshot,
+  getDoc,
 } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { Skeleton } from "@/components/ui/skeleton"
 import { motion, AnimatePresence } from "framer-motion"
 import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
+import { Star } from "lucide-react" // Import the star icon
+import { DialogDescription } from "@radix-ui/react-dialog"
 
 const Booking = () => {
   const { toast } = useToast()
@@ -33,6 +36,9 @@ const Booking = () => {
   const [loading, setLoading] = useState(true)
   const [cancellationReason, setCancellationReason] = useState("")
   const [selectedBooking, setSelectedBooking] = useState(null)
+  const [rating, setRating] = useState(0) // State for star rating
+  const [showRatingPopup, setShowRatingPopup] = useState(false) // State to show rating popup
+  const [bookingToRate, setBookingToRate] = useState(null) // Booking to rate
 
   useEffect(() => {
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
@@ -114,6 +120,58 @@ const Booking = () => {
     }
   }
 
+  const handleRatingSubmit = async () => {
+    if (!bookingToRate || rating === 0) {
+      toast({
+        title: "Rating Required",
+        description: "Please select a rating before submitting.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      // Save the rating to Firestore
+      const bookingRef = doc(firestore, "bookings", bookingToRate.id)
+      await updateDoc(bookingRef, {
+        rating, // Save the rating
+        status: "completed", // Mark the booking as completed
+      })
+
+      // Update the vendor's average rating
+      const vendorRef = doc(firestore, "users", bookingToRate.vendorId)
+      const vendorDoc = await getDoc(vendorRef)
+      const vendorData = vendorDoc.data()
+
+      const newTotalRatings = (vendorData.totalRatings || 0) + 1
+      const newRatingSum = (vendorData.ratingSum || 0) + rating
+      const newAverageRating = (newRatingSum / newTotalRatings).toFixed(1)
+
+      await updateDoc(vendorRef, {
+        totalRatings: newTotalRatings,
+        ratingSum: newRatingSum,
+        averageRating: newAverageRating,
+      })
+
+      toast({
+        title: "Rating Submitted",
+        description: "Thank you for rating the vendor!",
+        className: "bg-green-500 text-white",
+      })
+
+      // Close the popup and reset states
+      setShowRatingPopup(false)
+      setRating(0)
+      setBookingToRate(null)
+    } catch (error) {
+      toast({
+        title: "Rating Failed",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
+  }
+
   const getStatusBadge = (status) => {
     const statusColors = {
       booked: "bg-blue-500 hover:bg-blue-600",
@@ -182,10 +240,10 @@ const Booking = () => {
                     exit={{ opacity: 0 }}
                     className="bg-card rounded-lg p-4 shadow-sm border"
                   >
-                    {/* ... rest of active bookings content ... */}
-                    <div className="flex items-center justify-between">
+                    {/* Flex container for mobile responsiveness */}
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                       {/* Image and Vendor Information */}
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 w-full md:w-auto">
                         <div className="relative h-20 w-20 shrink-0">
                           <Image
                             src={
@@ -207,24 +265,29 @@ const Booking = () => {
                           <p className="text-sm text-muted-foreground">
                             {booking.vendorService}
                           </p>
-                          <p className="text-sm text-primary">
-                            Booked on{" "}
-                            {new Date(
-                              booking.createdAt?.seconds * 1000
-                            ).toLocaleDateString()}
-                          </p>
+                         
+                          {/* Display Booking Date and Time */}
+                          <div className="flex flex-col md:flex-row gap-2 text-sm text-primary">
+                            <p>
+                             Booking Date:{" "}
+                              {new Date(
+                                booking.date?.seconds * 1000
+                              ).toLocaleDateString()}
+                            </p>
+                            <p>Booking Time: {booking.time}</p>
+                          </div>
                         </div>
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="flex flex-col gap-2 md:flex-row items-center">
+                      <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button
                               variant="destructive"
                               size="sm"
                               onClick={() => setSelectedBooking(booking)}
-                              className="rounded-[5px]"
+                              className="w-full md:w-auto rounded-[5px]"
                             >
                               Cancel
                             </Button>
@@ -234,6 +297,7 @@ const Booking = () => {
                             <DialogHeader>
                               <DialogTitle>Cancel Booking</DialogTitle>
                             </DialogHeader>
+                            <DialogDescription>dsd</DialogDescription>
                             <div className="space-y-4">
                               <Textarea
                                 placeholder="Reason for cancellation"
@@ -257,11 +321,12 @@ const Booking = () => {
                         </Dialog>
 
                         <Button
-                          // variant="secondary"
-                          size="sm" className="rounded-[5px] bg-primary"
-                          onClick={() =>
-                            handleStatusUpdate(booking.id, "completed")
-                          }
+                          size="sm"
+                          className="w-full md:w-auto rounded-[5px] bg-primary"
+                          onClick={() => {
+                            setBookingToRate(booking)
+                            setShowRatingPopup(true)
+                          }}
                         >
                           Mark Complete
                         </Button>
@@ -273,6 +338,35 @@ const Booking = () => {
             </AnimatePresence>
           </div>
         </TabsContent>
+
+        {/* Star Rating Popup */}
+        <Dialog open={showRatingPopup} onOpenChange={setShowRatingPopup}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Rate the Vendor</DialogTitle>
+              <DialogDescription>
+                How would you rate your experience with {bookingToRate?.vendorName}?
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-center gap-2 my-4">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => setRating(star)}
+                  className={`text-2xl ${
+                    star <= rating ? "text-yellow-500" : "text-gray-300"
+                  }`}
+                >
+                  <Star className="w-8 h-8" />
+                </button>
+              ))}
+            </div>
+            <Button onClick={handleRatingSubmit} className="w-full">
+              Submit Rating
+            </Button>
+          </DialogContent>
+        </Dialog>
+
 
         {/* Completed Bookings Tab */}
         <TabsContent value="completed">
@@ -317,7 +411,7 @@ const Booking = () => {
                         </div>
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-lg">
+                            <h3 className="font-semibold md:text-lg">
                               {booking.vendorName}
                             </h3>
                             {getStatusBadge(booking.status)}
@@ -389,7 +483,7 @@ const Booking = () => {
                           </div>
                           <div className="flex flex-col gap-1">
                             <div className="flex items-center gap-2">
-                              <h3 className="font-semibold text-lg">
+                              <h3 className="font-semibold md:text-lg">
                                 {booking.vendorName}
                               </h3>
                               {getStatusBadge(booking.status)}

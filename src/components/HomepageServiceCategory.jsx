@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { firestore } from "@/context/Firebase"
-import { collection, getDocs, query, orderBy } from "firebase/firestore"
+import { collection, getDocs, query, orderBy, where } from "firebase/firestore"
 import { Button } from "@/components/ui/button"
 import { Plus, ArrowRight, ArrowLeft, Star, MapPin } from "lucide-react"
 import Link from "next/link"
@@ -40,7 +40,7 @@ const HomepageServiceCategory = () => {
     fetchServices()
   }, [])
 
-  // Fetch vendors
+  // Fetch vendors with average ratings
   useEffect(() => {
     const fetchVendors = async () => {
       setLoading(true)
@@ -53,8 +53,30 @@ const HomepageServiceCategory = () => {
           }))
           .filter((vendor) => vendor.role === "vendor")
 
-        setVendors(vendorsData)
-        setFilteredVendors(vendorsData)
+        // Fetch average ratings for each vendor
+        const vendorsWithRatings = await Promise.all(
+          vendorsData.map(async (vendor) => {
+            const bookingsQuery = query(
+              collection(firestore, "bookings"),
+              where("vendorId", "==", vendor.id)
+            )
+            const bookingsSnapshot = await getDocs(bookingsQuery)
+            const bookings = bookingsSnapshot.docs.map((doc) => doc.data())
+
+            // Calculate average rating
+            const totalRatings = bookings.filter((b) => b.rating).length
+            const ratingSum = bookings.reduce((sum, b) => sum + (b.rating || 0), 0)
+            const averageRating = totalRatings > 0 ? ratingSum / totalRatings : 0
+
+            return {
+              ...vendor,
+              averageRating: parseFloat(averageRating.toFixed(1)), // Round to 1 decimal place
+            }
+          })
+        )
+
+        setVendors(vendorsWithRatings)
+        setFilteredVendors(vendorsWithRatings)
       } catch (error) {
         console.error("Error fetching vendors:", error)
       } finally {
@@ -112,55 +134,66 @@ const HomepageServiceCategory = () => {
     hidden: { scale: 0.95, opacity: 0 },
     visible: { scale: 1, opacity: 1 },
   }
+
   return (
     <section className="pb-24 pt-5 px-4 sm:px-6 lg:px-20 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <div className="max-w-7xl mx-auto">
         {/* Service Categories */}
         <div className="mb-20">
-      <div className="flex items-center justify-between mb-10">
-        <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white">
-          Explore {" "}
-          <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-            Services
-          </span>
-        </h2>
-      </div>
+          <div className="flex items-center justify-between mb-10">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white">
+              Explore{" "}
+              <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+                Services
+              </span>
+            </h2>
+          </div>
 
-      {/* Responsive Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5">
-        {services.slice(0, 5).map((service) => (
-          <motion.button
-            key={service.id}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => handleServiceClick(service.name)}
-            className={`p-5 rounded-2xl backdrop-blur-lg border transition-all duration-300 flex flex-col items-center space-y-3 shadow-lg ${
-              selectedService === service.name
-                ? "bg-gradient-to-br from-blue-500/90 to-purple-600/90 border-transparent text-white"
-                : "bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
-            }`}
-          >
-            <div className="p-3 rounded-2xl bg-blue-100/50 dark:bg-blue-900/30">
-              <Image src={service.image} alt={service.name} width={48} height={48} className="object-contain" priority />
-            </div>
-            <span className="text-lg font-bold">{service.name}</span>
-          </motion.button>
-        ))}
+          {/* Responsive Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5">
+            {services.slice(0, 5).map((service) => (
+              <motion.button
+                key={service.id}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleServiceClick(service.name)}
+                className={`p-5 rounded-2xl backdrop-blur-lg border transition-all duration-300 flex flex-col items-center space-y-3 shadow-lg ${
+                  selectedService === service.name
+                    ? "bg-gradient-to-br from-blue-500/90 to-purple-600/90 border-transparent text-white"
+                    : "bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
+                }`}
+              >
+                <div className="p-3 rounded-2xl bg-blue-100/50 dark:bg-blue-900/30">
+                  <Image
+                    src={service.image}
+                    alt={service.name}
+                    width={48}
+                    height={48}
+                    className="object-contain "
+                    priority
+                  />
+                </div>
+                <span className="text-lg font-bold">{service.name}</span>
+              </motion.button>
+            ))}
 
-        {/* Discover More Card */}
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="p-5 flex flex-col items-center justify-center rounded-2xl backdrop-blur-lg border transition-all duration-300 shadow-lg bg-gradient-to-br 
+            {/* Discover More Card */}
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="p-5 flex flex-col items-center justify-center rounded-2xl backdrop-blur-lg border transition-all duration-300 shadow-lg bg-gradient-to-br 
           dark:from-blue-500/90 dark:to-purple-600/90 dark:text-white"
-        >
-          <Link href="/category" className="flex flex-col items-center space-y-2">
-            <ArrowRight className="w-10 h-10" />
-            <span className="text-lg font-bold line-clamp-1">Categories</span>
-          </Link>
-        </motion.div>
-      </div>
-    </div>
+            >
+              <Link
+                href="/category"
+                className="flex flex-col items-center space-y-2"
+              >
+                <ArrowRight className="w-10 h-10" />
+                <span className="text-lg font-bold line-clamp-1">Categories</span>
+              </Link>
+            </motion.div>
+          </div>
+        </div>
 
         {/* Vendor Section */}
         <div className="space-y-10">
@@ -246,7 +279,7 @@ const HomepageServiceCategory = () => {
                               <div className="flex items-center justify-center bg-gray-900/80 backdrop-blur-sm px-3 py-1 rounded-full">
                                 <Star className="w-4 h-4 text-yellow-400 mr-1" />
                                 <span className="text-sm font-semibold">
-                                  {vendor.rating || "4.5"}
+                                  {vendor.averageRating || 0}
                                 </span>
                               </div>
                             </div>
@@ -316,4 +349,5 @@ const HomepageServiceCategory = () => {
     </section>
   )
 }
+
 export default HomepageServiceCategory

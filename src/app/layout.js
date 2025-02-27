@@ -1,7 +1,7 @@
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 
-import { Roboto, Open_Sans, Lora } from "next/font/google"
+import { Roboto, Open_Sans } from "next/font/google"
 
 const roboto = Roboto({
   weight: "400",
@@ -12,10 +12,6 @@ const openSans = Open_Sans({
   subsets: ["latin"],
 })
 
-const lora = Lora({
-  weight: "400",
-  subsets: ["latin"],
-})
 
 export const metadata = {
   title: "Servify - Local Sercive Application",

@@ -51,7 +51,7 @@ const ProfileMenu = () => {
     ? "/admin/profile" 
     : "/profile";
 
-  if (loading) return <Loading />;
+  // if (loading) return <Loading />;
 
   return (
     <motion.div
@@ -109,7 +109,7 @@ const ProfileMenu = () => {
                     className="relative"
                   >
                     <Avatar className="w-12 h-12 border-2 border-white/20 shadow-lg">
-                      <AvatarImage src={user?.profileImage} />
+                      <AvatarImage src={user?.profileImage} className="object-cover"/>
                       <AvatarFallback className="bg-white/20 text-white">
                         {user?.firstName?.charAt(0)}
                       </AvatarFallback>

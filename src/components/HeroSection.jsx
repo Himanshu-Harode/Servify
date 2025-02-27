@@ -1,8 +1,25 @@
 import { motion } from "framer-motion"
 import { Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
 
 const HeroSection = () => {
+  const router = useRouter()
+  const [searchQuery, setSearchQuery] = useState("")
+
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      router.push(`/category?search=${encodeURIComponent(searchQuery)}`)
+    }
+  }
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      handleSearch()
+    }
+  }
+
   return (
     <div className="relative flex flex-col items-center justify-center min-h-[400px] md:min-h-[500px] px-4 py-8 md:py-12 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-gray-900 dark:to-gray-800 overflow-hidden">
       {/* Background animation */}
@@ -10,7 +27,7 @@ const HeroSection = () => {
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.8 }}
-        className="absolute inset-0 bg-gradient-to-br from-blue-100/20 to-purple-100/20 dark:from-gray-800/50 dark:to-gray-900/50"s
+        className="absolute inset-0 bg-gradient-to-br from-blue-100/20 to-purple-100/20 dark:from-gray-800/50 dark:to-gray-900/50"
       />
 
       {/* Main content */}
@@ -53,10 +70,14 @@ const HeroSection = () => {
               type="text"
               placeholder="Search for services..."
               className="flex-1 px-4 py-2.5 bg-transparent outline-none text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 text-sm md:text-base"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={handleKeyPress}
             />
             <Button
               className="rounded-full p-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all"
               size="sm"
+              onClick={handleSearch}
             >
               <Search className="w-4 h-4 text-white" />
               <span className="sr-only">Search</span>
