@@ -297,7 +297,7 @@ const Booking = () => {
                             <DialogHeader>
                               <DialogTitle>Cancel Booking</DialogTitle>
                             </DialogHeader>
-                            <DialogDescription>dsd</DialogDescription>
+                            <DialogDescription className="text-sm ">Enter reason for cancellation</DialogDescription>
                             <div className="space-y-4">
                               <Textarea
                                 placeholder="Reason for cancellation"
