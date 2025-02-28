@@ -151,9 +151,7 @@ const ProfileMenu = () => {
 
                 {[
                   { href: profileUrl, icon: <UserPen />, label: "Edit Profile" },
-                  { href: "/notifications", icon: <Bell />, label: "Notifications", badge: 3 },
-                  // { href: "/bookmarks", icon: <Bookmark />, label: "Saved Services" },
-                  { href: "/settings", icon: <Settings />, label: "Settings" }
+                 
                 ].map((item, index) => (
                   <DropdownMenuItem key={index} asChild>
                     <Link

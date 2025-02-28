@@ -9,42 +9,74 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { onAuthStateChanged } from "firebase/auth"
 import { auth, firestore } from "@/context/Firebase"
-import Loading from "@/app/loading"
 import { motion, AnimatePresence } from "framer-motion"
 import { Menu, X } from "lucide-react"
 
 const Header = () => {
   const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [role, setRole] = useState("")
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isClient, setIsClient] = useState(false)
   const router = useRouter()
 
+  // Ensure the component only runs client-side
   useEffect(() => {
+    setIsClient(true)
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
           const userDocRef = doc(firestore, "users", user.uid)
           const userDocSnap = await getDoc(userDocRef)
-          if (userDocSnap.exists()) setUser(userDocSnap.data())
+          if (userDocSnap.exists()) {
+            const userData = userDocSnap.data()
+            setUser(userData)
+            setRole(userData.role)
+          }
         } catch (error) {
           console.error("Error fetching user data:", error)
-        } finally {
-          setLoading(false)
         }
       } else {
         router.push("/login")
       }
     })
+
     return () => unsubscribe()
   }, [router])
 
-  const navLinks = [
-    { name: "Home", path: "/" },
-    { name: "My Bookings", path: "/myBooking" },
-    { name: "About Us", path: "/aboutUs" },
-  ]
+  // Role-based navigation links
+  const roleNavLinks = {
+    user: [
+      { name: "Home", path: "/" },
+      { name: "About Us", path: "/aboutUs" },
+      { name: "My Bookings", path: "/myBooking" },
+    ],
+    vendor: [
+      { name: "Home", path: "/vendor" },
+      { name: "Dashboard", path: "/vendor/dashboard" },
+      { name: "Bookings", path: "/vendor/bookings" },
+      { name: "About Us", path: "/aboutUs" },
+    ],
+    admin: [
+      { name: "Home", path: "/admin" },
+      { name: "Dashboard", path: "/admin/dashboard" },
+      { name: "Manage Users", path: "/admin/users" },
+      { name: "About Us", path: "/aboutUs" },
+    ],
+  }
 
-  if (loading) return <Loading />
+  let navLinks = [...(roleNavLinks[role] || [])]
+
+  // Show loading skeleton until client is ready
+  if (!isClient) {
+    return (
+      <header className="sticky top-0 z-50 bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-4 animate-pulse">
+          <div className="h-8 bg-gray-300 dark:bg-gray-700 w-32 rounded"></div>
+        </div>
+      </header>
+    )
+  }
 
   return (
     <motion.header
@@ -55,7 +87,6 @@ const Header = () => {
     >
       <div className="max-w-7xl mx-auto px-4 md:py-2 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo and Mobile Menu Button */}
           <div className="flex items-center gap-8">
             <motion.div
               whileHover={{ scale: 1.05 }}
@@ -70,8 +101,6 @@ const Header = () => {
                 priority
               />
             </motion.div>
-
-            {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center gap-6">
               {navLinks.map((link) => (
                 <motion.div key={link.path} whileHover={{ y: -2 }}>
@@ -85,13 +114,10 @@ const Header = () => {
               ))}
             </div>
           </div>
-
-          {/* Right Section */}
           <div className="flex items-center gap-4">
             <div className="hidden md:block">
               <ModeToggle />
             </div>
-
             {user ? (
               <ProfileMenu />
             ) : (
@@ -104,8 +130,6 @@ const Header = () => {
                 </Button>
               </motion.div>
             )}
-
-            {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="lg:hidden p-2 text-gray-600 dark:text-gray-300"
@@ -114,8 +138,6 @@ const Header = () => {
             </button>
           </div>
         </div>
-
-        {/* Mobile Menu */}
         <AnimatePresence>
           {isMenuOpen && (
             <motion.div
@@ -146,4 +168,4 @@ const Header = () => {
   )
 }
 
-export default Header 
+export default Header
