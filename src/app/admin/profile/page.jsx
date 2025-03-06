@@ -42,6 +42,7 @@ const AdminProfile = () => {
   const [userId, setUserId] = useState(null)
   const [open, setOpen] = useState(false)
   const [toastDetails, setToastDetails] = useState(null)
+  const [initialFormData, setInitialFormData] = useState(null)
 
   const [formData, setFormData] = useState({
     name: "",
@@ -71,11 +72,12 @@ const AdminProfile = () => {
       const userDoc = await getDoc(doc(firestore, "users", uid))
       if (userDoc.exists()) {
         const data = userDoc.data()
-        setFormData((prev) => ({
-          ...prev,
+        const formattedData = {
           ...data,
           name: `${data.firstName || ""} ${data.lastName || ""}`.trim(),
-        }))
+        }
+        setFormData(formattedData)
+        setInitialFormData(formattedData)
       }
     } catch (error) {
       console.error("Error fetching user data:", error)
@@ -83,7 +85,13 @@ const AdminProfile = () => {
   }
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+    if (name === "mobile") {
+      const sanitizedValue = value.replace(/\D/g, "").slice(0, 10)
+      setFormData(prev => ({ ...prev, [name]: sanitizedValue }))
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }))
+    }
   }
 
   const handleImageChange = async (e) => {
@@ -102,7 +110,7 @@ const AdminProfile = () => {
         { merge: true }
       )
 
-      setFormData((prev) => ({ ...prev, profileImage: downloadURL }))
+      setFormData(prev => ({ ...prev, profileImage: downloadURL }))
       setToastDetails({
         title: "Image Uploaded",
         description: "Profile image updated successfully",
@@ -126,19 +134,35 @@ const AdminProfile = () => {
     e.preventDefault()
     if (!userId) return
 
-    if (
-      !formData.name ||
-      !formData.mobile ||
-      !formData.address ||
-      !formData.city ||
-      !formData.state ||
-      !formData.country ||
-      !formData.pincode
-    ) {
+    // Check required fields
+    const requiredFields = ["name", "mobile", "address", "city", "state", "country", "pincode"]
+    if (requiredFields.some(field => !formData[field])) {
       setToastDetails({
         title: "Form Incomplete",
         description: "Please fill in all fields",
         variant: "destructive",
+      })
+      setOpen(true)
+      return
+    }
+
+    // Mobile validation
+    if (!/^[6-9]\d{9}$/.test(formData.mobile)) {
+      setToastDetails({
+        title: "Invalid Mobile",
+        description: "Mobile number must start with 6-9 and be 10 digits",
+        variant: "destructive",
+      })
+      setOpen(true)
+      return
+    }
+
+    // Check for changes
+    if (JSON.stringify(formData) === JSON.stringify(initialFormData)) {
+      setToastDetails({
+        title: "No Changes",
+        description: "No changes were made to the profile",
+        variant: "default",
       })
       setOpen(true)
       return
@@ -154,6 +178,7 @@ const AdminProfile = () => {
         { ...formData, firstName, lastName },
         { merge: true }
       )
+      setInitialFormData(formData)
       setToastDetails({
         title: "Profile Updated",
         description: "Changes saved successfully",
@@ -204,9 +229,9 @@ const AdminProfile = () => {
                         <motion.div
                           animate={{ rotate: 360 }}
                           transition={{ repeat: Infinity, duration: 1 }}
-                          className="text-primary"
+                          className="text-primary dark:text-white"
                         >
-                          <FiUploadCloud size={24} />
+                          <FiUploadCloud className="w-8 h-8 animate-pulse" />
                         </motion.div>
                       </div>
                     ) : (
@@ -227,6 +252,7 @@ const AdminProfile = () => {
                   accept="image/*"
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   onChange={handleImageChange}
+                  disabled={uploadingImage}
                 />
               </div>
             </motion.div>
@@ -234,37 +260,12 @@ const AdminProfile = () => {
             <div className="grid md:grid-cols-2 gap-6">
               {[
                 { label: "Name", name: "name", icon: <FiUser />, type: "text" },
-                {
-                  label: "Mobile Number",
-                  name: "mobile",
-                  icon: <FiPhone />,
-                  type: "number",
-                },
-                {
-                  label: "Address",
-                  name: "address",
-                  icon: <FiMapPin />,
-                  type: "text",
-                },
+                { label: "Mobile Number", name: "mobile", icon: <FiPhone />, type: "text" },
+                { label: "Address", name: "address", icon: <FiMapPin />, type: "text" },
                 { label: "City", name: "city", icon: <FiMap />, type: "text" },
-                {
-                  label: "State",
-                  name: "state",
-                  icon: <FiGlobe />,
-                  type: "text",
-                },
-                {
-                  label: "Country",
-                  name: "country",
-                  icon: <FiFlag />,
-                  type: "text",
-                },
-                {
-                  label: "Pincode",
-                  name: "pincode",
-                  icon: <FiHash />,
-                  type: "number",
-                },
+                { label: "State", name: "state", icon: <FiGlobe />, type: "text" },
+                { label: "Country", name: "country", icon: <FiFlag />, type: "text" },
+                { label: "Pincode", name: "pincode", icon: <FiHash />, type: "text" },
               ].map((field, index) => (
                 <motion.div
                   key={field.name}
@@ -284,6 +285,7 @@ const AdminProfile = () => {
                     type={field.type}
                     className="h-12 rounded-[5px] bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500/50"
                     placeholder={`Enter ${field.label}`}
+                    inputMode={["mobile", "pincode"].includes(field.name) ? "numeric" : "text"}
                   />
                 </motion.div>
               ))}

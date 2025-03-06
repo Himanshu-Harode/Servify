@@ -46,15 +46,15 @@ import {
 } from "@/components/ui/carousel"
 import { DialogDescription } from "@radix-ui/react-dialog"
 import ProtectedRoute from "@/components/ProtectedRoute"
-import { Calendar } from "@/components/ui/calendar" // Import Calendar from shadcn
-import { addDays, isBefore, isSameDay, format } from "date-fns" // For date manipulation
+import { Calendar } from "@/components/ui/calendar"
+import { isBefore, isSameDay, format } from "date-fns"
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetDescription,
-} from "@/components/ui/sheet" // Import Sheet component from shadcn
+} from "@/components/ui/sheet"
 
 const ServiceDetail = () => {
   const { detailService } = useParams()
@@ -68,11 +68,11 @@ const ServiceDetail = () => {
   const [currentUser, setCurrentUser] = useState(null)
   const [existingBooking, setExistingBooking] = useState(null)
   const [isBooking, setIsBooking] = useState(false)
-  const [selectedDate, setSelectedDate] = useState(null) // State for selected date
-  const [selectedTime, setSelectedTime] = useState(null) // State for selected time
-  const [showBookingSheet, setShowBookingSheet] = useState(false) // State to toggle booking sheet
+  const [selectedDate, setSelectedDate] = useState(null)
+  const [selectedTime, setSelectedTime] = useState(null)
+  const [showBookingSheet, setShowBookingSheet] = useState(false)
+  const [existingBookings, setExistingBookings] = useState([]) // State for existing bookings
 
-  // Time slots for selection
   const timeSlots = [
     "09:00 AM",
     "10:00 AM",
@@ -84,6 +84,78 @@ const ServiceDetail = () => {
     "04:00 PM",
     "05:00 PM",
   ]
+
+  // Fetch existing bookings for the selected date
+  const fetchExistingBookings = async (date) => {
+    try {
+      const bookingsQuery = query(
+        collection(firestore, "bookings"),
+        where("vendorId", "==", detailService),
+        where("date", "==", format(date, "yyyy-MM-dd"))
+      )
+
+      const snapshot = await getDocs(bookingsQuery)
+      const bookings = snapshot.docs.map((doc) => doc.data())
+      setExistingBookings(bookings)
+    } catch (error) {
+      console.error("Error fetching existing bookings:", error)
+    }
+  }
+
+  // Parse time string into a Date object
+  const parseTime = (time) => {
+    const [timePart, period] = time.split(" ")
+    const [hours, minutes] = timePart.split(":")
+    let hours24 = parseInt(hours, 10)
+    if (period === "PM" && hours24 !== 12) hours24 += 12
+    if (period === "AM" && hours24 === 12) hours24 = 0
+    const date = new Date()
+    date.setHours(hours24, parseInt(minutes, 10), 0, 0)
+    return date
+  }
+
+  // Check if a time slot is disabled
+  const isTimeSlotDisabled = (time) => {
+    if (!selectedDate) return false
+
+    // Disable all time slots for today if the current time exceeds the last slot
+    if (isSameDay(selectedDate, new Date())) {
+      const currentTime = new Date()
+      const lastSlotTime = parseTime(timeSlots[timeSlots.length - 1])
+      if (isBefore(lastSlotTime, currentTime)) {
+        return true // Disable all slots for today
+      }
+    }
+
+    // Disable past times for today
+    if (isSameDay(selectedDate, new Date())) {
+      const currentTime = new Date()
+      const slotTime = parseTime(time)
+      if (isBefore(slotTime, currentTime)) {
+        return true
+      }
+    }
+
+    // Disable if the time is already booked
+    const isBooked = existingBookings.some(
+      (booking) => booking.time === time && booking.status !== "canceled"
+    )
+    return isBooked
+  }
+
+  // Function to disable past dates and today if the current time exceeds the last slot
+  const isDateDisabled = (date) => {
+    const currentTime = new Date()
+    const lastSlotTime = parseTime(timeSlots[timeSlots.length - 1])
+
+    // Disable today's date if the current time exceeds the last slot
+    if (isSameDay(date, new Date()) && isBefore(lastSlotTime, currentTime)) {
+      return true
+    }
+
+    // Disable past dates
+    return isBefore(date, new Date()) && !isSameDay(date, new Date())
+  }
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -113,7 +185,7 @@ const ServiceDetail = () => {
             (service) =>
               service.id !== detailService &&
               service.role === "vendor" &&
-              service.service === userData.service // Filter by same service
+              service.service === userData.service
           )
         setSimilarServices(services)
 
@@ -140,6 +212,12 @@ const ServiceDetail = () => {
 
     fetchData()
   }, [detailService, currentUser])
+
+  useEffect(() => {
+    if (selectedDate) {
+      fetchExistingBookings(selectedDate)
+    }
+  }, [selectedDate])
 
   const handleBooking = async () => {
     setIsBooking(true)
@@ -191,7 +269,7 @@ const ServiceDetail = () => {
         vendorService: user.service,
         vendorAddress: user.address,
         status: "booked",
-        date: selectedDate,
+        date: format(selectedDate, "yyyy-MM-dd"),
         time: selectedTime,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -212,11 +290,6 @@ const ServiceDetail = () => {
     } finally {
       setIsBooking(false)
     }
-  }
-
-  // Function to disable past dates in the calendar
-  const isDateDisabled = (date) => {
-    return isBefore(date, new Date()) && !isSameDay(date, new Date())
   }
 
   // Function to handle "Book Appointment" button click
@@ -251,7 +324,7 @@ const ServiceDetail = () => {
     description,
     availableTime,
     serviceImages,
-    averageRating
+    averageRating,
   } = user
 
   return (
@@ -299,7 +372,7 @@ const ServiceDetail = () => {
                     { icon: Mail, text: email },
                     { icon: User, text: name },
                     { icon: Phone, text: mobile },
-                    { icon: Star, text: averageRating ||0 },
+                    { icon: Star, text: averageRating || 0 },
                     { icon: Clock2, text: `Available: ${availableTime}` },
                   ].map((item, index) => (
                     <motion.div
@@ -541,7 +614,7 @@ const ServiceDetail = () => {
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
-                disabled={isDateDisabled} // Disable past dates
+                disabled={isDateDisabled} // Disable past dates and today if the current time exceeds the last slot
                 className="rounded-md border"
               />
             </div>
@@ -557,11 +630,7 @@ const ServiceDetail = () => {
                     key={index}
                     variant={selectedTime === time ? "default" : "outline"}
                     onClick={() => setSelectedTime(time)}
-                    disabled={
-                      selectedDate &&
-                      isSameDay(selectedDate, new Date()) &&
-                      isBefore(new Date(`1970-01-01T${time}`), new Date())
-                    } // Disable past times for today
+                    disabled={isTimeSlotDisabled(time)} // Disable if the time is booked or in the past
                   >
                     {time}
                   </Button>

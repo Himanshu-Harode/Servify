@@ -12,46 +12,69 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOutIcon, UserPen, Settings, Bookmark, Bell, ChevronDown } from "lucide-react";
+import { LogOutIcon, UserPen, ChevronDown } from "lucide-react";
 import Link from "next/link";
-import Loading from "@/app/loading";
 
 const ProfileMenu = () => {
   const [user, setUser] = useState(null);
+  const [vendorStats, setVendorStats] = useState({
+    rating: 0,
+    totalBookings: 0,
+    successRate: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
+    const fetchUserData = async (userId) => {
+      try {
+        // Fetch user data from the `users` collection
+        const userDocRef = doc(firestore, "users", userId);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          setUser(userData);
+
+          // Set vendor stats from the user document
+          if (userData.role === "vendor") {
+            setVendorStats({
+              rating: userData.averageRating || 0,
+              totalBookings: userData.totalBookings || 0,
+              successRate: userData.successRate || 0,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        try {
-          const userDocRef = doc(firestore, "users", user.uid);
-          const userDocSnap = await getDoc(userDocRef);
-          if (userDocSnap.exists()) setUser(userDocSnap.data());
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-        } finally {
-          setLoading(false);
-        }
+        await fetchUserData(user.uid);
       } else {
         router.push("/login");
       }
     });
+
     return () => unsubscribe();
   }, [router]);
 
-  const profileUrl = user?.role === "vendor" 
-    ? "/vendor/profile" 
-    : user?.role === "admin" 
-    ? "/admin/profile" 
-    : "/profile";
+  const profileUrl =
+    user?.role === "vendor"
+      ? "/vendor/profile"
+      : user?.role === "admin"
+      ? "/admin/profile"
+      : "/profile";
 
-  // if (loading) return <Loading />;
+  if (loading) return <div className="w-12 h-12 rounded-full bg-gray-200 animate-pulse" />;
 
   return (
     <motion.div
@@ -78,11 +101,11 @@ const ProfileMenu = () => {
                 </AvatarFallback>
               </Avatar>
             </div>
-            
+
             <motion.div
-              animate={{ 
+              animate={{
                 rotate: isOpen ? 180 : 0,
-                scale: isOpen ? 1.1 : 1
+                scale: isOpen ? 1.1 : 1,
               }}
               className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 rounded-full p-1 shadow-sm border border-gray-200 dark:border-gray-700"
             >
@@ -104,12 +127,9 @@ const ProfileMenu = () => {
             >
               <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-4 pb-6">
                 <div className="flex items-center gap-3">
-                  <motion.div 
-                    whileHover={{ scale: 1.05 }}
-                    className="relative"
-                  >
+                  <motion.div whileHover={{ scale: 1.05 }} className="relative">
                     <Avatar className="w-12 h-12 border-2 border-white/20 shadow-lg">
-                      <AvatarImage src={user?.profileImage} className="object-cover"/>
+                      <AvatarImage src={user?.profileImage} className="object-cover" />
                       <AvatarFallback className="bg-white/20 text-white">
                         {user?.firstName?.charAt(0)}
                       </AvatarFallback>
@@ -119,57 +139,62 @@ const ProfileMenu = () => {
                     </div>
                   </motion.div>
                   <div>
-                    <p className="font-semibold text-white">{user?.firstName} {user?.lastName}</p>
+                    <p className="font-semibold text-white">
+                      {user?.firstName} {user?.lastName}
+                    </p>
                     <p className="text-sm text-white/90 mt-0.5">{user?.email}</p>
                   </div>
                 </div>
               </div>
 
               <div className="p-3 space-y-2">
-               {
-                user?.role==="vendor"&&
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                {[
-                  { value: "4.9", label: "Rating", icon: "⭐" },
-                  { value: "128", label: "Bookings", icon: "📅" },
-                  { value: "98%", label: "Success", icon: "🚀" }
-                ].map((stat, index) => (
-                  <motion.div
-                    key={index}
-                    whileHover={{ y: -2 }}
-                    className="text-center p-2 rounded-lg bg-gray-100 dark:bg-gray-700/50 backdrop-blur-sm"
-                  >
-                    <p className="font-bold text-blue-500 dark:text-purple-400 flex items-center justify-center gap-1">
-                      <span>{stat.icon}</span>
-                      {stat.value}
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">{stat.label}</p>
-                  </motion.div>
-                ))}
-              </div>
-               }
+                {user?.role === "vendor" && (
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    {[
+                      {
+                        value: vendorStats.rating,
+                        label: "Rating",
+                        icon: "⭐",
+                      },
+                      {
+                        value: vendorStats.totalBookings,
+                        label: "Bookings",
+                        icon: "📅",
+                      },
+                      {
+                        value: `${vendorStats.successRate}%`,
+                        label: "Success",
+                        icon: "🚀",
+                      },
+                    ].map((stat, index) => (
+                      <motion.div
+                        key={index}
+                        whileHover={{ y: -2 }}
+                        className="text-center p-2 rounded-lg bg-gray-100 dark:bg-gray-700/50 backdrop-blur-sm"
+                      >
+                        <p className="font-bold text-blue-500 dark:text-purple-400 flex items-center justify-center gap-1">
+                          <span>{stat.icon}</span>
+                          {stat.value}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
+                          {stat.label}
+                        </p>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
 
-                {[
-                  { href: profileUrl, icon: <UserPen />, label: "Edit Profile" },
-                 
-                ].map((item, index) => (
-                  <DropdownMenuItem key={index} asChild>
-                    <Link
-                      href={item.href}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:hover:from-gray-700/50 dark:hover:to-gray-700/70 transition-all"
-                    >
-                      <span className="text-blue-500 dark:text-purple-400">
-                        {item.icon}
-                      </span>
-                      <span className="flex-1">{item.label}</span>
-                      {item.badge && (
-                        <span className="ml-auto bg-red-500 text-white px-2 py-0.5 rounded-full text-xs">
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
-                  </DropdownMenuItem>
-                ))}
+                <DropdownMenuItem asChild>
+                  <Link
+                    href={profileUrl}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:hover:from-gray-700/50 dark:hover:to-gray-700/70 transition-all"
+                  >
+                    <span className="text-blue-500 dark:text-purple-400">
+                      <UserPen size={18} />
+                    </span>
+                    <span className="flex-1">Edit Profile</span>
+                  </Link>
+                </DropdownMenuItem>
 
                 <DropdownMenuSeparator className="my-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 h-[2px]" />
 

@@ -48,8 +48,8 @@ const Header = () => {
   const roleNavLinks = {
     user: [
       { name: "Home", path: "/" },
-      { name: "About Us", path: "/aboutUs" },
       { name: "My Bookings", path: "/myBooking" },
+      { name: "About Us", path: "/aboutUs" },
     ],
     vendor: [
       { name: "Home", path: "/vendor" },

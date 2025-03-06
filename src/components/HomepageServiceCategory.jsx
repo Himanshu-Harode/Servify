@@ -70,7 +70,7 @@ const HomepageServiceCategory = () => {
 
             return {
               ...vendor,
-              averageRating: parseFloat(averageRating.toFixed(1)), // Round to 1 decimal place
+              // averageRating: parseFloat(averageRating.toFixed(1)), // Round to 1 decimal place
             }
           })
         )

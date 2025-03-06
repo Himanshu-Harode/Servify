@@ -25,6 +25,7 @@ const Profile = () => {
   const [imageError, setImageError] = useState(false)
   const [open, setOpen] = useState(false)
   const [toastDetails, setToastDetails] = useState(null)
+  const [initialFormData, setInitialFormData] = useState(null)
   
   const [formData, setFormData] = useState({
     name: "",
@@ -54,11 +55,12 @@ const Profile = () => {
       const userDoc = await getDoc(doc(firestore, "users", uid))
       if (userDoc.exists()) {
         const data = userDoc.data()
-        setFormData((prev) => ({
-          ...prev,
+        const formattedData = {
           ...data,
           name: `${data.firstName || ""} ${data.lastName || ""}`.trim(),
-        }))
+        }
+        setFormData(formattedData)
+        setInitialFormData(formattedData)
       }
     } catch (error) {
       console.error("Error fetching user data:", error)
@@ -66,7 +68,13 @@ const Profile = () => {
   }
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+    if (name === "mobile") {
+      const sanitizedValue = value.replace(/\D/g, "").slice(0, 10)
+      setFormData(prev => ({ ...prev, [name]: sanitizedValue }))
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }))
+    }
   }
 
   const handleImageChange = async (e) => {
@@ -85,7 +93,7 @@ const Profile = () => {
         { merge: true }
       )
 
-      setFormData((prev) => ({ ...prev, profileImage: downloadURL }))
+      setFormData(prev => ({ ...prev, profileImage: downloadURL }))
       setToastDetails({
         title: "Image Uploaded",
         description: "Profile image updated successfully",
@@ -109,19 +117,35 @@ const Profile = () => {
     e.preventDefault()
     if (!userId) return
 
-    if (
-      !formData.name ||
-      !formData.mobile ||
-      !formData.address ||
-      !formData.city ||
-      !formData.state ||
-      !formData.country ||
-      !formData.pincode
-    ) {
+    // Check all required fields
+    const requiredFields = ["name", "mobile", "address", "city", "state", "country", "pincode"]
+    if (requiredFields.some(field => !formData[field])) {
       setToastDetails({
         title: "Form Incomplete",
         description: "Please fill in all fields",
         variant: "destructive",
+      })
+      setOpen(true)
+      return
+    }
+
+    // Mobile validation
+    if (!/^[6-9]\d{9}$/.test(formData.mobile)) {
+      setToastDetails({
+        title: "Invalid Mobile",
+        description: "Mobile number must start with 6-9 and be 10 digits",
+        variant: "destructive",
+      })
+      setOpen(true)
+      return
+    }
+
+    // Check for changes
+    if (JSON.stringify(formData) === JSON.stringify(initialFormData)) {
+      setToastDetails({
+        title: "No Changes",
+        description: "No changes were made to the profile",
+        variant: "default",
       })
       setOpen(true)
       return
@@ -137,6 +161,7 @@ const Profile = () => {
         { ...formData, firstName, lastName },
         { merge: true }
       )
+      setInitialFormData(formData)
       setToastDetails({
         title: "Profile Updated",
         description: "Changes saved successfully",
@@ -174,7 +199,6 @@ const Profile = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-8">
-            {/* Profile Image Section with Loader */}
             <motion.div
               className="flex flex-col items-center gap-4"
               initial={{ scale: 0.95 }}
@@ -222,16 +246,15 @@ const Profile = () => {
               </div>
             </motion.div>
 
-            {/* Form Fields */}
             <div className="grid md:grid-cols-2 gap-6">
               {[
-                { label: "Full Name", name: "name", icon: <FiUser />,type: "text", },
-                { label: "Mobile Number", name: "mobile", icon: <FiPhone />,type: "number", },
+                { label: "Full Name", name: "name", icon: <FiUser />, type: "text" },
+                { label: "Mobile Number", name: "mobile", icon: <FiPhone />, type: "text" },
                 { label: "Address", name: "address", icon: <FiMapPin />, type: "text" },
-                { label: "City", name: "city", icon: <FiMap />,type: "text", },
-                { label: "State", name: "state", icon: <FiGlobe />,type: "text" },
-                { label: "Country", name: "country", icon: <FiFlag />,type: "text" },
-                { label: "Pincode", name: "pincode", icon: <FiHash /> ,type: "number"},
+                { label: "City", name: "city", icon: <FiMap />, type: "text" },
+                { label: "State", name: "state", icon: <FiGlobe />, type: "text" },
+                { label: "Country", name: "country", icon: <FiFlag />, type: "text" },
+                { label: "Pincode", name: "pincode", icon: <FiHash />, type: "text" },
               ].map((field, index) => (
                 <motion.div
                   key={field.name}
@@ -251,12 +274,12 @@ const Profile = () => {
                     onChange={handleChange}
                     className="h-12 rounded-[5px] bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500/50"
                     placeholder={`Enter ${field.label}`}
+                    inputMode={field.name === "mobile" || field.name === "pincode" ? "numeric" : "text"}
                   />
                 </motion.div>
               ))}
             </div>
 
-            {/* Submit Button */}
             <motion.div
               className="flex justify-end"
               whileHover={{ scale: 1.02 }}
@@ -274,7 +297,6 @@ const Profile = () => {
           </form>
         </motion.div>
 
-        {/* Toast Notification */}
         <Toast
           open={open}
           onOpenChange={setOpen}
