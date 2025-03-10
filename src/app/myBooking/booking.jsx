@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { Star } from "lucide-react";
 import { DialogDescription } from "@radix-ui/react-dialog";
+import { onAuthStateChanged } from "firebase/auth";
 
 const Booking = () => {
   const { toast } = useToast();
@@ -38,23 +39,50 @@ const Booking = () => {
   const [loading, setLoading] = useState(true);
   const [cancellationReason, setCancellationReason] = useState("");
   const [selectedBooking, setSelectedBooking] = useState(null);
-  const [rating, setRating] = useState(0); // State for star rating
-  const [reviewText, setReviewText] = useState(""); // State for review text
-  const [showRatingPopup, setShowRatingPopup] = useState(false); // State to show rating popup
-  const [bookingToRate, setBookingToRate] = useState(null); // Booking to rate
+  const [rating, setRating] = useState(0);
+  const [reviewText, setReviewText] = useState("");
+  const [showRatingPopup, setShowRatingPopup] = useState(false);
+  const [bookingToRate, setBookingToRate] = useState(null);
 
   // Utility function to format timestamp as "day-date-year"
   const formatTimestamp = (timestamp) => {
-    if (!timestamp) return "N/A";
-    const date = timestamp.toDate(); // Convert Firestore timestamp to JavaScript Date
-    const options = { weekday: "long", day: "numeric", month: "numeric", year: "numeric" };
-    return date.toLocaleDateString("en-US", options).replace(/\//g, "-");
+    if (!timestamp) return "N/A"; // Handle null or undefined timestamps
+  
+    // Check if the timestamp is a Firestore Timestamp
+    if (typeof timestamp.toDate === "function") {
+      const date = timestamp.toDate(); // Convert Firestore timestamp to JavaScript Date
+      return formatDate(date);
+    }
+  
+    // If the timestamp is already a JavaScript Date object
+    if (timestamp instanceof Date) {
+      return formatDate(timestamp);
+    }
+  
+    // If the timestamp is a string (e.g., "March 5, 2025 at 3:59:51 AM UTC+5:30")
+    if (typeof timestamp === "string") {
+      const date = new Date(timestamp);
+      if (!isNaN(date.getTime())) {
+        return formatDate(date);
+      }
+    }
+  
+    return "N/A"; // Fallback for invalid timestamps
   };
+  
+  // Helper function to format date
+  const formatDate = (date) => {
+    const options ={ day: "2-digit", month: "2-digit", year: "numeric" };
+    return date.toLocaleDateString("en-GB", options).replace(/\//g, "-"); 
+  };
+  
+
 
   useEffect(() => {
-    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (!user) return;
 
+      // Query for active bookings
       const q = query(
         collection(firestore, "bookings"),
         where("userId", "==", user.uid),
@@ -65,11 +93,12 @@ const Booking = () => {
         const activeBookings = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-          createdAt: doc.data().createdAt, // Keep as Firestore timestamp
+          createdAt: doc.data().createdAt,
         }));
         setBookings(activeBookings);
       });
 
+      // Query for completed bookings
       const completedQ = query(
         collection(firestore, "bookings"),
         where("userId", "==", user.uid),
@@ -80,14 +109,23 @@ const Booking = () => {
         const completed = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-          createdAt: doc.data().createdAt, // Keep as Firestore timestamp
-          completedAt: doc.data().completedAt, // Keep as Firestore timestamp
-          rating: doc.data().rating, // Keep the rating
-          review: doc.data().review, // Keep the review
+          createdAt: doc.data().createdAt,
+          completedAt: doc.data().completedAt,
+          rating: doc.data().rating,
+          review: doc.data().review,
+          ratedAt: doc.data().ratedAt, // Add ratedAt for sorting
         }));
         setCompletedBookings(completed);
+
+        // Check if any completed booking is not rated
+        const unratedBooking = completed.find((booking) => !booking.rating);
+        if (unratedBooking) {
+          setBookingToRate(unratedBooking);
+          setShowRatingPopup(true);
+        }
       });
 
+      // Query for all bookings
       const allQ = query(
         collection(firestore, "bookings"),
         where("userId", "==", user.uid)
@@ -97,11 +135,12 @@ const Booking = () => {
         const all = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-          createdAt: doc.data().createdAt, // Keep as Firestore timestamp
-          cancelledAt: doc.data().cancelledAt, // Keep as Firestore timestamp
-          completedAt: doc.data().completedAt, // Keep as Firestore timestamp
-          rating: doc.data().rating, // Keep the rating
-          review: doc.data().review, // Keep the review
+          createdAt: doc.data().createdAt,
+          cancelledAt: doc.data().cancelledAt,
+          completedAt: doc.data().completedAt,
+          rating: doc.data().rating,
+          review: doc.data().review,
+          ratedAt: doc.data().ratedAt, // Add ratedAt for sorting
         }));
         setAllBookings(all);
         setLoading(false);
@@ -124,14 +163,14 @@ const Booking = () => {
         status: newStatus,
         ...(newStatus === "cancelled" && {
           cancellationReason,
-          cancelledAt: serverTimestamp(), // Add timestamp for cancellation
+          cancelledAt: serverTimestamp(),
         }),
       });
 
       toast({
         title: "Booking Updated",
         description: `Booking has been ${newStatus}`,
-        className: "bg-green-500 text-white",
+        variant: "success",
       });
       setCancellationReason("");
       setSelectedBooking(null);
@@ -155,22 +194,17 @@ const Booking = () => {
     }
 
     try {
-      // Save the rating, review, and mark the booking as completed
       const bookingRef = doc(firestore, "bookings", bookingToRate.id);
       await updateDoc(bookingRef, {
-        rating, // Save the rating
-        review: reviewText, // Save the review
-        ratedAt: serverTimestamp(), // Add timestamp for when the rating was submitted
-        status: "completed", // Mark the booking as completed
-        completedAt: serverTimestamp(), // Add timestamp for completion
+        rating,
+        review: reviewText,
+        ratedAt: serverTimestamp(), // Add ratedAt for sorting
       });
 
-      // Update the vendor's average rating in the users collection
       const vendorRef = doc(firestore, "users", bookingToRate.vendorId);
       const vendorDoc = await getDoc(vendorRef);
       const vendorData = vendorDoc.data();
 
-      // Calculate new average rating
       const newTotalRatings = (vendorData.totalRatings || 0) + 1;
       const newRatingSum = (vendorData.ratingSum || 0) + rating;
       const newAverageRating = (newRatingSum / newTotalRatings).toFixed(1);
@@ -187,7 +221,6 @@ const Booking = () => {
         className: "bg-green-500 text-white",
       });
 
-      // Close the popup and reset states
       setShowRatingPopup(false);
       setRating(0);
       setReviewText("");
@@ -215,7 +248,6 @@ const Booking = () => {
     );
   };
 
-  // Sorting function
   const sortByDate = (a, b) => b.createdAt?.seconds - a.createdAt?.seconds;
 
   return (
@@ -226,7 +258,7 @@ const Booking = () => {
           <TabsTrigger value="completed">Completed</TabsTrigger>
           <TabsTrigger value="all">All Bookings</TabsTrigger>
         </TabsList>
-  
+
         {/* Active Bookings Tab */}
         <TabsContent value="bookings">
           <div className="mt-6 space-y-4">
@@ -276,7 +308,6 @@ const Booking = () => {
                           <p className="text-sm text-muted-foreground">
                             {booking.vendorService}
                           </p>
-                          {/* Display Booking Date and Time */}
                           <div className="flex flex-col md:flex-row gap-2 text-sm">
                             <p className="text-blue-600 dark:text-blue-400">
                               Created on: {formatTimestamp(booking.createdAt)}
@@ -284,7 +315,7 @@ const Booking = () => {
                           </div>
                         </div>
                       </div>
-  
+
                       {/* Action Buttons */}
                       <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
                         <Dialog>
@@ -298,7 +329,7 @@ const Booking = () => {
                               Cancel
                             </Button>
                           </DialogTrigger>
-  
+
                           <DialogContent>
                             <DialogHeader>
                               <DialogTitle>Cancel Booking</DialogTitle>
@@ -327,18 +358,6 @@ const Booking = () => {
                             </div>
                           </DialogContent>
                         </Dialog>
-  
-                        <Button
-                          size="sm"
-                          className="w-full md:w-auto rounded-[5px] bg-primary"
-                          onClick={() => {
-                            // Open the rating popup
-                            setBookingToRate(booking);
-                            setShowRatingPopup(true);
-                          }}
-                        >
-                          Mark Complete
-                        </Button>
                       </div>
                     </div>
                   </motion.div>
@@ -347,7 +366,7 @@ const Booking = () => {
             </AnimatePresence>
           </div>
         </TabsContent>
-  
+
         {/* Star Rating Popup with Review Field */}
         <Dialog open={showRatingPopup} onOpenChange={setShowRatingPopup}>
           <DialogContent>
@@ -381,7 +400,7 @@ const Booking = () => {
             </Button>
           </DialogContent>
         </Dialog>
-  
+
         {/* Completed Bookings Tab */}
         <TabsContent value="completed">
           <div className="mt-6 space-y-4">
@@ -461,7 +480,7 @@ const Booking = () => {
             </AnimatePresence>
           </div>
         </TabsContent>
-  
+
         {/* All Bookings Tab */}
         <TabsContent value="all">
           <div className="mt-6 space-y-4">

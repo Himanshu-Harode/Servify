@@ -1,5 +1,6 @@
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/toaster"
 
 import { Roboto, Open_Sans } from "next/font/google"
 
@@ -32,6 +33,7 @@ export default function RootLayout({ children }) {
         >
           <div className=" ">{children}</div>
         </ThemeProvider>
+        <Toaster /> 
       </body>
     </html>
   )

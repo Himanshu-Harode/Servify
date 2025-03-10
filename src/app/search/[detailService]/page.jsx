@@ -276,14 +276,14 @@ const ServiceDetail = () => {
       })
 
       toast({
-        title: "Booking Successful",
+        title: "Booking Successful ✅",
         description: "Your booking request has been submitted",
-        className: "bg-green-500 text-white",
+        variant: "success",
       })
       setShowBookingSheet(false) // Close the booking sheet after successful booking
     } catch (error) {
       toast({
-        title: "Booking Failed",
+        title: "Booking Failed ❌",
         description: error.message,
         variant: "destructive",
       })
