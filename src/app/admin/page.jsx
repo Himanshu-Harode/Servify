@@ -55,7 +55,7 @@ const AdminPage = () => {
 
   return (
     <ProtectedRoute roleRequired={["admin"]}>
-      <Header />
+     
       <div className="p-6 max-w-6xl mx-auto">
         {/* Metrics Boxes */}
         <div className="grid grid-cols-2 text-center md:grid-cols-4 gap-6 mb-8">

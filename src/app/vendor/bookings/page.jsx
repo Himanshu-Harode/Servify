@@ -36,7 +36,12 @@ import {
 } from "lucide-react";
 import Loading from "@/app/loading";
 import { useToast } from "@/hooks/use-toast";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 const VendorBookingPage = () => {
   const [bookings, setBookings] = useState([]);
@@ -50,6 +55,7 @@ const VendorBookingPage = () => {
   const [otp, setOtp] = useState("");
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+  const [otpTimer, setOtpTimer] = useState(0); // Timer in seconds
   const { toast } = useToast();
 
   // Fetch bookings from Firestore with real-time updates
@@ -126,6 +132,19 @@ const VendorBookingPage = () => {
     };
   }, [sortOrder, toast]);
 
+  // Handle OTP timer
+  useEffect(() => {
+    let interval;
+    if (otpTimer > 0) {
+      interval = setInterval(() => {
+        setOtpTimer((prev) => prev - 1);
+      }, 1000);
+    } else if (otpTimer === 0 && isOtpSent) {
+      setIsOtpSent(false); // Allow resending OTP after timer expires
+    }
+    return () => clearInterval(interval);
+  }, [otpTimer, isOtpSent]);
+
   // Send OTP to the user's email
   const sendOtp = async (email) => {
     if (!email) {
@@ -150,6 +169,7 @@ const VendorBookingPage = () => {
 
       if (response.ok) {
         setIsOtpSent(true);
+        setOtpTimer(180); // Set timer to 3 minutes
         toast({
           title: "OTP Sent",
           description: "An OTP has been sent to the user's email.",
@@ -299,233 +319,161 @@ const VendorBookingPage = () => {
   if (loading) return <Loading />;
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">
-        📅 Bookings Management
-      </h1>
-      <Tabs defaultValue="new">
-        <TabsList className="grid grid-cols-3 w-full bg-background">
-          <TabsTrigger
-            value="new"
-            className="data-[state=active]:bg-blue-500 rounded-[5px] data-[state=active]:text-white"
-          >
-            New ({bookings.filter((b) => b.status === "booked").length})
-          </TabsTrigger>
-          <TabsTrigger
-            value="pending"
-            className="data-[state=active]:bg-blue-500 rounded-[5px] data-[state=active]:text-white"
-          >
-            Pending ({bookings.filter((b) => b.status === "accepted").length})
-          </TabsTrigger>
-          <TabsTrigger
-            value="all"
-            className="data-[state=active]:bg-blue-500 rounded-[5px] data-[state=active]:text-white"
-          >
-            All ({bookings.length})
-          </TabsTrigger>
-        </TabsList>
-        <div className="my-4 flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search by name or service..."
-              className="pl-8"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <div className="flex gap-2">
-            <select
-              className="border rounded-lg p-2 bg-white dark:bg-gray-800 dark:text-gray-100"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
+    <ProtectedRoute roleRequired={["vendor"]}>
+      <div className="p-4 md:p-6 max-w-6xl mx-auto">
+        <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">
+          📅 Bookings Management
+        </h1>
+        <Tabs defaultValue="new">
+          <TabsList className="grid grid-cols-3 w-full bg-background">
+            <TabsTrigger
+              value="new"
+              className="data-[state=active]:bg-blue-500 rounded-[5px] data-[state=active]:text-white"
             >
-              <option value="all">All Statuses</option>
-              <option value="booked">Booked</option>
-              <option value="accepted">Accepted</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-            <Button
-              variant="outline"
-              onClick={() =>
-                setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))
-              }
+              New ({bookings.filter((b) => b.status === "booked").length})
+            </TabsTrigger>
+            <TabsTrigger
+              value="pending"
+              className="data-[state=active]:bg-blue-500 rounded-[5px] data-[state=active]:text-white"
             >
-              <ArrowUpDown className="mr-2 h-4 w-4" />
-              {sortOrder === "asc" ? "Oldest" : "Newest"}
-            </Button>
+              Pending ({bookings.filter((b) => b.status === "accepted").length})
+            </TabsTrigger>
+            <TabsTrigger
+              value="all"
+              className="data-[state=active]:bg-blue-500 rounded-[5px] data-[state=active]:text-white"
+            >
+              All ({bookings.length})
+            </TabsTrigger>
+          </TabsList>
+          <div className="my-4 flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search by name or service..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <select
+                className="border rounded-lg p-2 bg-white dark:bg-gray-800 dark:text-gray-100"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+              >
+                <option value="all">All Statuses</option>
+                <option value="booked">Booked</option>
+                <option value="accepted">Accepted</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))
+                }
+              >
+                <ArrowUpDown className="mr-2 h-4 w-4" />
+                {sortOrder === "asc" ? "Oldest" : "Newest"}
+              </Button>
+            </div>
           </div>
-        </div>
-        {/* Tabs Content */}
-        <TabsContent value="new">
-          <div className="space-y-4">
-            {bookings
-              .filter((b) => b.status === "booked")
-              .map((booking) => (
-                <Card
-                  key={booking.id}
-                  className="p-4 hover:shadow-lg transition-shadow"
-                >
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        {booking.profileImage ? (
-                          <img
-                            src={booking.profileImage}
-                            alt={booking.customerName}
-                            className="w-8 h-8 rounded-full"
-                          />
-                        ) : (
-                          <User className="w-8 h-8 text-gray-500" />
-                        )}
-                        <p className="font-medium text-gray-900 dark:text-gray-100">
-                          {booking.customerName}
-                        </p>
-                        <StatusBadge status={booking.status} />
+          {/* Tabs Content */}
+          <TabsContent value="new">
+            <div className="space-y-4">
+              {bookings
+                .filter((b) => b.status === "booked")
+                .map((booking) => (
+                  <Card
+                    key={booking.id}
+                    className="p-4 hover:shadow-lg transition-shadow"
+                  >
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          {booking.profileImage ? (
+                            <img
+                              src={booking.profileImage}
+                              alt={booking.customerName}
+                              className="w-8 h-8 rounded-full"
+                            />
+                          ) : (
+                            <User className="w-8 h-8 text-gray-500" />
+                          )}
+                          <p className="font-medium text-gray-900 dark:text-gray-100">
+                            {booking.customerName}
+                          </p>
+                          <StatusBadge status={booking.status} />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-gray-500" />
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {booking.date} at {booking.time}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-gray-500" />
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {booking.date} at {booking.time}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() =>
-                          handleStatusChange(booking.id, "accepted")
-                        }
-                        className="bg-green-500 rounded-[3px] hover:bg-green-600"
-                      >
-                        <CheckCircle className="mr-2 h-4 w-4" /> Accept
-                      </Button>
-                      <Button
-                        className="rounded-[3px]"
-                        variant="destructive"
-                        onClick={() => {
-                          setSelectedBooking(booking);
-                          setIsCancelModalOpen(true);
-                        }}
-                      >
-                        <XCircle className="mr-2 h-4 w-4" /> Cancel
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-          </div>
-        </TabsContent>
-        {/* Pending Bookings Tab */}
-        <TabsContent value="pending">
-          <div className="space-y-4">
-            {bookings
-              .filter((b) => b.status === "accepted")
-              .map((booking) => (
-                <Card
-                  key={booking.id}
-                  className="p-4 hover:shadow-lg transition-shadow"
-                >
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        {booking.profileImage ? (
-                          <img
-                            src={booking.profileImage}
-                            alt={booking.customerName}
-                            className="w-8 h-8 rounded-full"
-                          />
-                        ) : (
-                          <User className="w-8 h-8 text-gray-500" />
-                        )}
-                        <p className="font-medium text-gray-900 dark:text-gray-100">
-                          {booking.customerName}
-                        </p>
-                        <StatusBadge status={booking.status} />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-gray-500" />
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {booking.date} at {booking.time}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => {
-                          if (!booking.email) {
-                            toast({
-                              title: "Email is required",
-                              description: "No email found for this booking.",
-                              variant: "destructive",
-                            });
-                            return;
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() =>
+                            handleStatusChange(booking.id, "accepted")
                           }
-                          sendOtp(booking.email);
-                          setSelectedBooking(booking);
-                          setIsOtpModalOpen(true);
-                        }}
-                        className="bg-blue-500 rounded-[3px] hover:bg-blue-600"
-                      >
-                        Mark Complete
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-          </div>
-        </TabsContent>
-
-        {/* All Services Tab */}
-        <TabsContent value="all">
-          <div className="space-y-4">
-            {bookings
-              .filter((booking) => {
-                if (filterStatus === "all") return true;
-                return booking.status === filterStatus;
-              })
-              .map((booking) => (
-                <Card
-                  key={booking.id}
-                  className="p-4 hover:shadow-lg transition-shadow"
-                >
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        {booking.profileImage ? (
-                          <img
-                            src={booking.profileImage}
-                            alt={booking.customerName}
-                            className="w-8 h-8 rounded-full"
-                          />
-                        ) : (
-                          <User className="w-8 h-8 text-gray-500" />
-                        )}
-                        <p className="font-medium text-gray-900 dark:text-gray-100">
-                          {booking.customerName}
-                        </p>
-                        <StatusBadge status={booking.status} />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-gray-500" />
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {booking.date} at {booking.time}
-                        </p>
+                          className="bg-green-500 rounded-[3px] hover:bg-green-600"
+                        >
+                          <CheckCircle className="mr-2 h-4 w-4" /> Accept
+                        </Button>
+                        <Button
+                          className="rounded-[3px]"
+                          variant="destructive"
+                          onClick={() => {
+                            setSelectedBooking(booking);
+                            setIsCancelModalOpen(true);
+                          }}
+                        >
+                          <XCircle className="mr-2 h-4 w-4" /> Cancel
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      {booking.status === "accepted" && (
+                  </Card>
+                ))}
+            </div>
+          </TabsContent>
+          {/* Pending Bookings Tab */}
+          <TabsContent value="pending">
+            <div className="space-y-4">
+              {bookings
+                .filter((b) => b.status === "accepted")
+                .map((booking) => (
+                  <Card
+                    key={booking.id}
+                    className="p-4 hover:shadow-lg transition-shadow"
+                  >
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          {booking.profileImage ? (
+                            <img
+                              src={booking.profileImage}
+                              alt={booking.customerName}
+                              className="w-8 h-8 rounded-full"
+                            />
+                          ) : (
+                            <User className="w-8 h-8 text-gray-500" />
+                          )}
+                          <p className="font-medium text-gray-900 dark:text-gray-100">
+                            {booking.customerName}
+                          </p>
+                          <StatusBadge status={booking.status} />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-gray-500" />
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {booking.date} at {booking.time}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
                         <Button
                           onClick={() => {
-                            if (!booking.email) {
-                              toast({
-                                title: "Email is required",
-                                description: "No email found for this booking.",
-                                variant: "destructive",
-                              });
-                              return;
-                            }
-                            sendOtp(booking.email);
                             setSelectedBooking(booking);
                             setIsOtpModalOpen(true);
                           }}
@@ -533,101 +481,171 @@ const VendorBookingPage = () => {
                         >
                           Mark Complete
                         </Button>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
-          </div>
-        </TabsContent>
-
-        {/* OTP Verification Modal */}
-        <Dialog open={isOtpModalOpen} onOpenChange={setIsOtpModalOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Enter OTP</DialogTitle>
-              <DialogDescription>
-                Please enter the OTP sent to the user's email.
-              </DialogDescription>
-            </DialogHeader>
-            <InputOTP
-              maxLength={6}
-              value={otp}
-              onChange={(value) => setOtp(value)}
-            >
-              <InputOTPGroup>
-                {[...Array(6)].map((_, index) => (
-                  <InputOTPSlot key={index} index={index} />
+                  </Card>
                 ))}
-              </InputOTPGroup>
-            </InputOTP>
-            <DialogFooter className="mt-4">
-              <Button
-                onClick={() => {
-                  verifyOtpAndComplete(selectedBooking.id, selectedBooking.email);
-                }}
-                className="bg-green-500 hover:bg-green-600"
-              >
-                Verify OTP
-              </Button>
-              <Button
-                onClick={() => {
-                  sendOtp(selectedBooking.email);
-                }}
-                variant="outline"
-              >
-                Resend OTP
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </div>
+          </TabsContent>
 
-        {/* Cancel Booking Modal */}
-        <Dialog open={isCancelModalOpen} onOpenChange={setIsCancelModalOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Cancel Booking</DialogTitle>
-              <DialogDescription>
-                Please provide a reason for cancelling this booking.
-              </DialogDescription>
-            </DialogHeader>
-            <Textarea
-              placeholder="Enter reason for cancellation..."
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-            />
-            <DialogFooter className="mt-4">
-              <Button
-                onClick={() => {
-                  handleCancelBooking(selectedBooking.id);
-                setIsCancelModalOpen(false);
-                setCancelReason("");
-                setSelectedBooking(null);
-                toast({
-                  title: "Booking Cancelled",
-                  description: "The booking has been cancelled.",
-                  variant: "destructive",
-                });
-                }}
-                className="bg-red-500 hover:bg-red-600"
+          {/* All Services Tab */}
+          <TabsContent value="all">
+            <div className="space-y-4">
+              {bookings
+                .filter((booking) => {
+                  if (filterStatus === "all") return true;
+                  return booking.status === filterStatus;
+                })
+                .map((booking) => (
+                  <Card
+                    key={booking.id}
+                    className="p-4 hover:shadow-lg transition-shadow"
+                  >
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          {booking.profileImage ? (
+                            <img
+                              src={booking.profileImage}
+                              alt={booking.customerName}
+                              className="w-8 h-8 rounded-full"
+                            />
+                          ) : (
+                            <User className="w-8 h-8 text-gray-500" />
+                          )}
+                          <p className="font-medium text-gray-900 dark:text-gray-100">
+                            {booking.customerName}
+                          </p>
+                          <StatusBadge status={booking.status} />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-gray-500" />
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {booking.date} at {booking.time}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {booking.status === "accepted" && (
+                          <Button
+                            onClick={() => {
+                              setSelectedBooking(booking);
+                              setIsOtpModalOpen(true);
+                            }}
+                            className="bg-blue-500 rounded-[3px] hover:bg-blue-600"
+                          >
+                            Mark Complete
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+            </div>
+          </TabsContent>
+
+          {/* OTP Verification Modal */}
+          <Dialog open={isOtpModalOpen} onOpenChange={setIsOtpModalOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Enter OTP</DialogTitle>
+                <DialogDescription>
+                  Please enter the OTP sent to the user's email.
+                </DialogDescription>
+              </DialogHeader>
+              <InputOTP
+                maxLength={6}
+                value={otp}
+                onChange={(value) => setOtp(value)}
               >
-                Confirm Cancellation
-              </Button>
-              <Button
-                onClick={() => {
-                  setIsCancelModalOpen(false);
-                  setCancelReason("");
-                  setSelectedBooking(null);
-                }}
-                variant="outline"
-              >
-                Cancel
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </Tabs>
-    </div>
+                <InputOTPGroup>
+                  {[...Array(6)].map((_, index) => (
+                    <InputOTPSlot key={index} index={index} />
+                  ))}
+                </InputOTPGroup>
+              </InputOTP>
+              <DialogFooter className="mt-4">
+                <Button
+                  onClick={() => {
+                    verifyOtpAndComplete(
+                      selectedBooking.id,
+                      selectedBooking.email
+                    );
+                  }}
+                  className="bg-green-500 hover:bg-green-600"
+                >
+                  Verify OTP
+                </Button>
+                {!isOtpSent ? (
+                  <Button
+                    onClick={() => {
+                      sendOtp(selectedBooking.email);
+                    }}
+                    variant="outline"
+                  >
+                    Send OTP
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      sendOtp(selectedBooking.email);
+                    }}
+                    variant="outline"
+                    disabled={otpTimer > 0}
+                  >
+                    {otpTimer > 0
+                      ? `Resend OTP in ${Math.floor(otpTimer / 60)}:${
+                          otpTimer % 60 < 10 ? "0" : ""
+                        }${otpTimer % 60}`
+                      : "Resend OTP"}
+                  </Button>
+                )}
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Cancel Booking Modal */}
+          <Dialog open={isCancelModalOpen} onOpenChange={setIsCancelModalOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Cancel Booking</DialogTitle>
+                <DialogDescription>
+                  Please provide a reason for cancelling this booking.
+                </DialogDescription>
+              </DialogHeader>
+              <Textarea
+                placeholder="Enter reason for cancellation..."
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+              />
+              <DialogFooter className="mt-4">
+                <Button
+                  onClick={() => {
+                    handleCancelBooking(selectedBooking.id);
+                    setIsCancelModalOpen(false);
+                    setCancelReason("");
+                    setSelectedBooking(null);
+                  }}
+                  className="bg-red-500 hover:bg-red-600"
+                >
+                  Confirm Cancellation
+                </Button>
+                <Button
+                  onClick={() => {
+                    setIsCancelModalOpen(false);
+                    setCancelReason("");
+                    setSelectedBooking(null);
+                  }}
+                  variant="outline"
+                >
+                  Cancel
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </Tabs>
+      </div>
+    </ProtectedRoute>
   );
 };
 
