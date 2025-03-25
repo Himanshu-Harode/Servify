@@ -97,6 +97,7 @@ export default function ServicesPage() {
       toast({
         title: "Success",
         description: "Service added successfully.",
+        variant: "success",
       });
     } catch (error) {
       toast({
@@ -146,6 +147,7 @@ export default function ServicesPage() {
       toast({
         title: "Success",
         description: "Service updated successfully.",
+        variant: "success",
       });
     } catch (error) {
       toast({
@@ -164,6 +166,7 @@ export default function ServicesPage() {
       toast({
         title: "Success",
         description: "Service removed successfully.",
+        variant: "success",
       });
     } catch (error) {
       toast({
@@ -175,7 +178,7 @@ export default function ServicesPage() {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-8">
+    <div className="p-6 max-w-6xl mb-16 mx-auto space-y-8">
       <h1 className="text-3xl font-bold text-center">Manage Services</h1>
 
       {/* Add Service Form */}
@@ -235,26 +238,26 @@ export default function ServicesPage() {
           {services?.map((service) => (
             <Card key={service.id} className="hover:shadow-lg transition-shadow">
               <CardHeader className="p-0">
-                <Avatar className="w-full h-48 rounded-t-lg">
-                  <AvatarImage src={service?.image} alt={service?.name} className="object-cover" />
+                <Avatar className="w-full h-36 rounded-t-lg">
+                  <AvatarImage src={service?.image} alt={service?.name} className="object-contain" />
                   <AvatarFallback>{service?.name?.charAt(0)}</AvatarFallback>
                 </Avatar>
               </CardHeader>
               <CardContent className="p-4">
                 <h2 className="text-xl font-bold">{service?.name}</h2>
               </CardContent>
-              <CardFooter className="flex justify-end gap-2 p-4">
+              <CardFooter className="flex justify-between gap-2 p-4">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => editServiceHandler(service)}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="bg-primary rounded-[5px] text-primary-foreground hover:bg-primary/90"
                 >
                   <Edit className="h-4 w-4 mr-2" />
                   Edit
                 </Button>
                 <Button
-                  variant="destructive"
+                  variant="destructive" className="rounded-[5px]"
                   size="sm"
                   onClick={() => removeService(service.id)}
                 >

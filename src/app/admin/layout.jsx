@@ -85,19 +85,19 @@ const AdminLayout = ({ children }) => {
       path: "/admin",
     },
     {
-      name: "Bookings",
+      name: "Users",
       icon: <FiBox className="w-5 h-5" />,
-      path: "/admin/bookings",
+      path: "/admin/users",
+    },
+    {
+      name: "Vendors",
+      icon: <Star className="w-5 h-5" />,
+      path: "/admin/vendors",
     },
     {
       name: "Services",
-      icon: <Star className="w-5 h-5" />,
-      path: "/admin/services",
-    },
-    {
-      name: "Support",
       icon: <RiCustomerService2Line className="w-5 h-5" />,
-      path: "/admin/support",
+      path: "/admin/services",
     },
   ]
   const dektopNav = [
@@ -107,19 +107,19 @@ const AdminLayout = ({ children }) => {
       path: "/admin",
     },
     {
-      name: "Bookings",
+      name: "Users",
       icon: <FiBox className="w-5 h-5" />,
-      path: "/admin/bookings",
+      path: "/admin/users",
+    },
+    {
+      name: "Vendors",
+      icon: <Star className="w-5 h-5" />,
+      path: "/admin/vendors",
     },
     {
       name: "Services",
-      icon: <Star className="w-5 h-5" />,
-      path: "/admin/services",
-    },
-    {
-      name: "Support",
       icon: <RiCustomerService2Line className="w-5 h-5" />,
-      path: "/admin/support",
+      path: "/admin/services",
     },
     {
       name: "Profile",
@@ -216,7 +216,7 @@ const AdminLayout = ({ children }) => {
               <Button
                 variant="destructive"
                 size="sm"
-                className="text-muted-foreground rounded-[5px] hover:text-foreground flex items-center gap-2"
+                className="dark:text-muted-foreground rounded-[5px] hover:text-foreground flex items-center gap-2"
                 onClick={handleLogout}
               >
                 <FiLogOut className="w-4 h-4" />
@@ -312,7 +312,7 @@ const AdminLayout = ({ children }) => {
                     <Button
                       variant="destructive"
                       size="sm"
-                      className="text-muted-foreground rounded-[5px] hover:text-foreground flex items-center gap-2"
+                      className="darktext-muted-foreground rounded-[5px] hover:text-foreground flex items-center gap-2"
                       onClick={handleLogout}
                     >
                       <FiLogOut className="w-4 h-4" />

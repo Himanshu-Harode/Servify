@@ -278,7 +278,7 @@ const VendorLayout = ({ children }) => {
               <Button
                 variant="destructive"
                 size="sm"
-                className="text-muted-foreground rounded-[5px]  hover:text-foreground flex items-center gap-2"
+                className="dark:text-muted-foreground rounded-[5px]  hover:text-foreground flex items-center gap-2"
                 onClick={handleLogout}
               >
                 <FiLogOut className="w-4 h-4" />
