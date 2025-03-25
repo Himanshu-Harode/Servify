@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { auth, firestore } from "@/context/Firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -40,12 +40,35 @@ const ProfileMenu = () => {
           const userData = userDocSnap.data();
           setUser(userData);
 
-          // Set vendor stats from the user document
+          // Fetch bookings data for the vendor
           if (userData.role === "vendor") {
+            const bookingsQuery = query(
+              collection(firestore, "bookings"),
+              where("vendorId", "==", userId)
+            );
+            const bookingsSnapshot = await getDocs(bookingsQuery);
+
+            // Calculate total bookings and completed bookings
+            let totalBookings = 0;
+            let completedBookings = 0;
+
+            bookingsSnapshot.forEach((doc) => {
+              const bookingData = doc.data();
+              totalBookings++;
+              if (bookingData.status === "completed") {
+                completedBookings++;
+              }
+            });
+
+            // Calculate success rate
+            const successRate =
+              totalBookings > 0 ? Math.round((completedBookings / totalBookings) * 100) : 0;
+
+            // Set vendor stats
             setVendorStats({
               rating: userData.averageRating || 0,
-              totalBookings: userData.totalBookings || 0,
-              successRate: userData.successRate || 0,
+              totalBookings,
+              successRate,
             });
           }
         }

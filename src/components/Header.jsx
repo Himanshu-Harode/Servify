@@ -1,48 +1,48 @@
-"use client"
-import Image from "next/image"
-import { ModeToggle } from "./ToggleTheme"
-import { Button } from "./ui/button"
-import Link from "next/link"
-import { doc, getDoc } from "firebase/firestore"
-import ProfileMenu from "./ProfileMenu"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import { onAuthStateChanged } from "firebase/auth"
-import { auth, firestore } from "@/context/Firebase"
-import { motion, AnimatePresence } from "framer-motion"
-import { Menu, X } from "lucide-react"
+"use client";
+import Image from "next/image";
+import { ModeToggle } from "./ToggleTheme";
+import { Button } from "./ui/button";
+import Link from "next/link";
+import { doc, getDoc } from "firebase/firestore";
+import ProfileMenu from "./ProfileMenu";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth, firestore } from "@/context/Firebase";
+import { motion, AnimatePresence } from "framer-motion";
+import { Menu, X } from "lucide-react";
 
 const Header = () => {
-  const [user, setUser] = useState(null)
-  const [role, setRole] = useState("")
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [isClient, setIsClient] = useState(false)
-  const router = useRouter()
+  const [user, setUser] = useState(null);
+  const [role, setRole] = useState("");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+  const router = useRouter();
 
   // Ensure the component only runs client-side
   useEffect(() => {
-    setIsClient(true)
+    setIsClient(true);
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
-          const userDocRef = doc(firestore, "users", user.uid)
-          const userDocSnap = await getDoc(userDocRef)
+          const userDocRef = doc(firestore, "users", user.uid);
+          const userDocSnap = await getDoc(userDocRef);
           if (userDocSnap.exists()) {
-            const userData = userDocSnap.data()
-            setUser(userData)
-            setRole(userData.role)
+            const userData = userDocSnap.data();
+            setUser(userData);
+            setRole(userData.role);
           }
         } catch (error) {
-          console.error("Error fetching user data:", error)
+          console.error("Error fetching user data:", error);
         }
       } else {
-        router.push("/login")
+        router.push("/login");
       }
-    })
+    });
 
-    return () => unsubscribe()
-  }, [router])
+    return () => unsubscribe();
+  }, [router]);
 
   // Role-based navigation links
   const roleNavLinks = {
@@ -63,9 +63,9 @@ const Header = () => {
       { name: "Manage Users", path: "/admin/users" },
       { name: "About Us", path: "/aboutUs" },
     ],
-  }
+  };
 
-  let navLinks = [...(roleNavLinks[role] || [])]
+  let navLinks = [...(roleNavLinks[role] || [])];
 
   // Show loading skeleton until client is ready
   if (!isClient) {
@@ -75,7 +75,7 @@ const Header = () => {
           <div className="h-8 bg-gray-300 dark:bg-gray-700 w-32 rounded"></div>
         </div>
       </header>
-    )
+    );
   }
 
   return (
@@ -94,10 +94,10 @@ const Header = () => {
             >
               <Image
                 src="/logo.svg"
-                alt="logo"
-                width={100}
-                height={100}
-                className="w-32 md:w-40"
+                width={120}
+                height={40}
+                alt="Servify Logo"
+                
                 priority
               />
             </motion.div>
@@ -165,7 +165,7 @@ const Header = () => {
         </AnimatePresence>
       </div>
     </motion.header>
-  )
-}
+  );
+};
 
-export default Header
+export default Header;

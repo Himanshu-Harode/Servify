@@ -184,7 +184,7 @@ const AdminProfile = () => {
   if (!isClient || loading) return <Loading />
 
   return (
-    <div className="min-h-screen bg-background md:py-12 px-4 py-5 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-background mb-16 md:mb-0 md:py-12 px-4 py-5 sm:px-6 lg:px-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
