@@ -44,45 +44,37 @@ const Booking = () => {
   const [showRatingPopup, setShowRatingPopup] = useState(false);
   const [bookingToRate, setBookingToRate] = useState(null);
 
-  // Utility function to format timestamp as "day-date-year"
   const formatTimestamp = (timestamp) => {
-    if (!timestamp) return "N/A"; // Handle null or undefined timestamps
-  
-    // Check if the timestamp is a Firestore Timestamp
+    if (!timestamp) return "N/A";
+
     if (typeof timestamp.toDate === "function") {
-      const date = timestamp.toDate(); // Convert Firestore timestamp to JavaScript Date
+      const date = timestamp.toDate();
       return formatDate(date);
     }
-  
-    // If the timestamp is already a JavaScript Date object
+
     if (timestamp instanceof Date) {
       return formatDate(timestamp);
     }
-  
-    // If the timestamp is a string (e.g., "March 5, 2025 at 3:59:51 AM UTC+5:30")
+
     if (typeof timestamp === "string") {
       const date = new Date(timestamp);
       if (!isNaN(date.getTime())) {
         return formatDate(date);
       }
     }
-  
-    return "N/A"; // Fallback for invalid timestamps
-  };
-  
-  // Helper function to format date
-  const formatDate = (date) => {
-    const options ={ day: "2-digit", month: "2-digit", year: "numeric" };
-    return date.toLocaleDateString("en-GB", options).replace(/\//g, "-"); 
-  };
-  
 
+    return "N/A";
+  };
+
+  const formatDate = (date) => {
+    const options = { day: "2-digit", month: "2-digit", year: "numeric" };
+    return date.toLocaleDateString("en-GB", options).replace(/\//g, "-");
+  };
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (!user) return;
 
-      // Query for active bookings
       const q = query(
         collection(firestore, "bookings"),
         where("userId", "==", user.uid),
@@ -98,7 +90,6 @@ const Booking = () => {
         setBookings(activeBookings);
       });
 
-      // Query for completed bookings
       const completedQ = query(
         collection(firestore, "bookings"),
         where("userId", "==", user.uid),
@@ -113,11 +104,10 @@ const Booking = () => {
           completedAt: doc.data().completedAt,
           rating: doc.data().rating,
           review: doc.data().review,
-          ratedAt: doc.data().ratedAt, // Add ratedAt for sorting
+          ratedAt: doc.data().ratedAt,
         }));
         setCompletedBookings(completed);
 
-        // Check if any completed booking is not rated
         const unratedBooking = completed.find((booking) => !booking.rating);
         if (unratedBooking) {
           setBookingToRate(unratedBooking);
@@ -125,7 +115,6 @@ const Booking = () => {
         }
       });
 
-      // Query for all bookings
       const allQ = query(
         collection(firestore, "bookings"),
         where("userId", "==", user.uid)
@@ -140,7 +129,7 @@ const Booking = () => {
           completedAt: doc.data().completedAt,
           rating: doc.data().rating,
           review: doc.data().review,
-          ratedAt: doc.data().ratedAt, // Add ratedAt for sorting
+          ratedAt: doc.data().ratedAt,
         }));
         setAllBookings(all);
         setLoading(false);
@@ -166,7 +155,6 @@ const Booking = () => {
           cancelledAt: serverTimestamp(),
         }),
       });
-
       toast({
         title: "Booking Updated",
         description: `Booking has been ${newStatus}`,
@@ -198,7 +186,7 @@ const Booking = () => {
       await updateDoc(bookingRef, {
         rating,
         review: reviewText,
-        ratedAt: serverTimestamp(), // Add ratedAt for sorting
+        ratedAt: serverTimestamp(),
       });
 
       const vendorRef = doc(firestore, "users", bookingToRate.vendorId);
@@ -218,7 +206,7 @@ const Booking = () => {
       toast({
         title: "Rating Submitted",
         description: "Thank you for rating the vendor!",
-        className: "bg-green-500 text-white",
+        variant: "success",
       });
 
       setShowRatingPopup(false);
@@ -253,10 +241,25 @@ const Booking = () => {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <Tabs defaultValue="bookings">
-        <TabsList className="grid w-full grid-cols-3 bg-muted/50">
-          <TabsTrigger value="bookings">Active</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
-          <TabsTrigger value="all">All Bookings</TabsTrigger>
+        <TabsList className="grid w-full  grid-cols-3 bg-muted/50">
+          <TabsTrigger
+            value="bookings"
+            className="py-2 px-4 rounded-full data-[state=active]:bg-secondary data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all"
+          >
+            Active
+          </TabsTrigger>
+          <TabsTrigger
+            value="completed"
+            className="py-2 px-4 rounded-full data-[state=active]:bg-secondary data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all"
+          >
+            Completed
+          </TabsTrigger>
+          <TabsTrigger
+            value="all"
+            className="py-2 px-4 rounded-full data-[state=active]:bg-secondary data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all"
+          >
+            History
+          </TabsTrigger>
         </TabsList>
 
         {/* Active Bookings Tab */}
@@ -291,7 +294,9 @@ const Booking = () => {
                       <div className="flex items-center gap-4 w-full md:w-auto">
                         <div className="relative h-20 w-20 shrink-0">
                           <Image
-                            src={booking.vendorProfile || "/placeholder-user.png"}
+                            src={
+                              booking.vendorProfile || "/placeholder-user.png"
+                            }
                             alt={booking.vendorName}
                             fill
                             className="rounded-full object-cover"
@@ -316,7 +321,6 @@ const Booking = () => {
                         </div>
                       </div>
 
-                      {/* Action Buttons */}
                       <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
                         <Dialog>
                           <DialogTrigger asChild>
@@ -373,7 +377,8 @@ const Booking = () => {
             <DialogHeader>
               <DialogTitle>Rate the Vendor</DialogTitle>
               <DialogDescription>
-                How would you rate your experience with {bookingToRate?.vendorName}?
+                How would you rate your experience with{" "}
+                {bookingToRate?.vendorName}?
               </DialogDescription>
             </DialogHeader>
             <div className="flex justify-center gap-2 my-4">
@@ -432,7 +437,9 @@ const Booking = () => {
                       <div className="flex items-center gap-4">
                         <div className="relative h-20 w-20 shrink-0">
                           <Image
-                            src={booking.vendorProfile || "/placeholder-user.png"}
+                            src={
+                              booking.vendorProfile || "/placeholder-user.png"
+                            }
                             alt={booking.vendorName}
                             fill
                             className="rounded-full object-cover"
@@ -547,7 +554,8 @@ const Booking = () => {
                             )}
                             {booking.completedAt && (
                               <p className="text-sm text-green-600 dark:text-green-400">
-                                Completed on: {formatTimestamp(booking.completedAt)}
+                                Completed on:{" "}
+                                {formatTimestamp(booking.completedAt)}
                               </p>
                             )}
                             {booking.rating && (

@@ -11,6 +11,7 @@ import {
   query,
   where,
   onSnapshot,
+  updateDoc,
 } from "firebase/firestore"
 import Loading from "@/app/loading"
 import Image from "next/image"
@@ -71,7 +72,7 @@ const ServiceDetail = () => {
   const [selectedDate, setSelectedDate] = useState(null)
   const [selectedTime, setSelectedTime] = useState(null)
   const [showBookingSheet, setShowBookingSheet] = useState(false)
-  const [existingBookings, setExistingBookings] = useState([]) // State for existing bookings
+  const [existingBookings, setExistingBookings] = useState([])
 
   const timeSlots = [
     "09:00 AM",
@@ -85,13 +86,45 @@ const ServiceDetail = () => {
     "05:00 PM",
   ]
 
-  // Fetch existing bookings for the selected date
+  // Get user's current location and update in Firestore
+  const updateUserLocationInFirestore = async () => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject("Geolocation is not supported by your browser")
+        return
+      }
+
+      navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            try {
+              const userRef = doc(firestore, "users", currentUser.uid)
+              await updateDoc(userRef, {
+                location: {
+                  lat: position.coords.latitude,
+                  lng: position.coords.longitude,
+                  updatedAt: new Date()
+                }
+              })
+              resolve()
+            } catch (error) {
+              console.error("Error updating user location:", error)
+              reject("Failed to save location")
+            }
+          },
+          (error) => {
+            console.error("Error getting location:", error)
+            reject("Could not get your location")
+          }
+      )
+    })
+  }
+
   const fetchExistingBookings = async (date) => {
     try {
       const bookingsQuery = query(
-        collection(firestore, "bookings"),
-        where("vendorId", "==", detailService),
-        where("date", "==", format(date, "yyyy-MM-dd"))
+          collection(firestore, "bookings"),
+          where("vendorId", "==", detailService),
+          where("date", "==", format(date, "yyyy-MM-dd"))
       )
 
       const snapshot = await getDocs(bookingsQuery)
@@ -102,7 +135,6 @@ const ServiceDetail = () => {
     }
   }
 
-  // Parse time string into a Date object
   const parseTime = (time) => {
     const [timePart, period] = time.split(" ")
     const [hours, minutes] = timePart.split(":")
@@ -114,20 +146,17 @@ const ServiceDetail = () => {
     return date
   }
 
-  // Check if a time slot is disabled
   const isTimeSlotDisabled = (time) => {
     if (!selectedDate) return false
 
-    // Disable all time slots for today if the current time exceeds the last slot
     if (isSameDay(selectedDate, new Date())) {
       const currentTime = new Date()
       const lastSlotTime = parseTime(timeSlots[timeSlots.length - 1])
       if (isBefore(lastSlotTime, currentTime)) {
-        return true // Disable all slots for today
+        return true
       }
     }
 
-    // Disable past times for today
     if (isSameDay(selectedDate, new Date())) {
       const currentTime = new Date()
       const slotTime = parseTime(time)
@@ -136,24 +165,20 @@ const ServiceDetail = () => {
       }
     }
 
-    // Disable if the time is already booked
     const isBooked = existingBookings.some(
-      (booking) => booking.time === time && booking.status !== "canceled"
+        (booking) => booking.time === time && booking.status !== "canceled"
     )
     return isBooked
   }
 
-  // Function to disable past dates and today if the current time exceeds the last slot
   const isDateDisabled = (date) => {
     const currentTime = new Date()
     const lastSlotTime = parseTime(timeSlots[timeSlots.length - 1])
 
-    // Disable today's date if the current time exceeds the last slot
     if (isSameDay(date, new Date()) && isBefore(lastSlotTime, currentTime)) {
       return true
     }
 
-    // Disable past dates
     return isBefore(date, new Date()) && !isSameDay(date, new Date())
   }
 
@@ -177,25 +202,25 @@ const ServiceDetail = () => {
         const userData = userSnapshot.data()
         setUser(userData)
 
-        // Fetch similar services with the same service type
+        // Fetch similar services
         const servicesSnapshot = await getDocs(collection(firestore, "users"))
         const services = servicesSnapshot.docs
-          .map((doc) => ({ id: doc.id, ...doc.data() }))
-          .filter(
-            (service) =>
-              service.id !== detailService &&
-              service.role === "vendor" &&
-              service.service === userData.service
-          )
+            .map((doc) => ({ id: doc.id, ...doc.data() }))
+            .filter(
+                (service) =>
+                    service.id !== detailService &&
+                    service.role === "vendor" &&
+                    service.service === userData.service
+            )
         setSimilarServices(services)
 
         // Check existing bookings
         if (currentUser) {
           const bookingsQuery = query(
-            collection(firestore, "bookings"),
-            where("userId", "==", currentUser.uid),
-            where("vendorId", "==", detailService),
-            where("status", "in", ["booked", "accepted"])
+              collection(firestore, "bookings"),
+              where("userId", "==", currentUser.uid),
+              where("vendorId", "==", detailService),
+              where("status", "in", ["booked", "accepted"])
           )
 
           const unsubscribe = onSnapshot(bookingsQuery, (snapshot) => {
@@ -249,15 +274,28 @@ const ServiceDetail = () => {
         return
       }
 
+      // Update user's location in Firestore
+      try {
+        await updateUserLocationInFirestore()
+      } catch (error) {
+        console.error("Location update error:", error)
+        toast({
+          title: "Location Update Failed",
+          description: "Could not save your location, but booking will proceed",
+          variant: "destructive",
+        })
+      }
+
       // Fetch user details from Firestore
       const userDoc = await getDoc(doc(firestore, "users", currentUser.uid))
       if (!userDoc.exists()) throw new Error("User profile not found")
 
       const userData = userDoc.data()
       const userName = `${userData.firstName || ""} ${
-        userData.lastName || ""
+          userData.lastName || ""
       }`.trim()
 
+      // Create booking
       await addDoc(collection(firestore, "bookings"), {
         userId: currentUser.uid,
         vendorId: detailService,
@@ -280,7 +318,7 @@ const ServiceDetail = () => {
         description: "Your booking request has been submitted",
         variant: "success",
       })
-      setShowBookingSheet(false) // Close the booking sheet after successful booking
+      setShowBookingSheet(false)
     } catch (error) {
       toast({
         title: "Booking Failed ❌",
@@ -292,25 +330,24 @@ const ServiceDetail = () => {
     }
   }
 
-  // Function to handle "Book Appointment" button click
   const handleBookAppointmentClick = () => {
-    setShowBookingSheet(true) // Show the booking sheet
-    setSelectedDate(null) // Reset selected date
-    setSelectedTime(null) // Reset selected time
+    setShowBookingSheet(true)
+    setSelectedDate(null)
+    setSelectedTime(null)
   }
 
   if (loading) return <Loading />
   if (error)
     return (
-      <div className="text-center text-red-500 font-bold text-xl mt-10">
-        {error}
-      </div>
+        <div className="text-center text-red-500 font-bold text-xl mt-10">
+          {error}
+        </div>
     )
   if (!user)
     return (
-      <div className="text-center text-red-500 font-bold text-xl mt-10">
-        User not found
-      </div>
+        <div className="text-center text-red-500 font-bold text-xl mt-10">
+          User not found
+        </div>
     )
 
   const {
@@ -326,332 +363,331 @@ const ServiceDetail = () => {
     serviceImages,
     averageRating,
   } = user
-
   return (
-    <ProtectedRoute roleRequired={["user"]}>
-      <div className="min-h-screen bg-background">
-        <Header />
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="max-w-7xl mx-auto p-4 md:p-6"
-        >
-          {/* Vendor Profile Section */}
-          <div className="bg-card rounded-xl p-6 shadow-sm dark:shadow-md dark:border dark:border-gray-700">
-            <div className="flex flex-col md:flex-row gap-6">
-              {/* Profile Image */}
-              <motion.div
-                className="flex flex-col items-center"
-                initial={{ scale: 0.9 }}
-                animate={{ scale: 1 }}
-              >
-                <div className="relative w-32 h-32 md:w-48 md:h-48 group">
-                  <Image
-                    src={profileImage || "/placeholder-user.png"}
-                    alt={organizationName}
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="rounded-full object-cover border-4 border-primary/10 group-hover:border-primary/30 transition-all duration-300"
-                    priority
-                  />
-                </div>
-                <span className="mt-4 px-4 py-1 text-sm font-medium bg-primary/10 text-primary rounded-full">
+      <ProtectedRoute roleRequired={["user"]}>
+        <div className="min-h-screen bg-background">
+          <Header />
+          <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="max-w-7xl mx-auto p-4 md:p-6"
+          >
+            {/* Vendor Profile Section */}
+            <div className="bg-card rounded-xl p-6 shadow-sm dark:shadow-md dark:border dark:border-gray-700">
+              <div className="flex flex-col md:flex-row gap-6">
+                {/* Profile Image */}
+                <motion.div
+                    className="flex flex-col items-center"
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                >
+                  <div className="relative w-32 h-32 md:w-48 md:h-48 group">
+                    <Image
+                        src={profileImage || "/placeholder-user.png"}
+                        alt={organizationName}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="rounded-full object-cover border-4 border-primary/10 group-hover:border-primary/30 transition-all duration-300"
+                        priority
+                    />
+                  </div>
+                  <span className="mt-4 px-4 py-1 text-sm font-medium bg-primary/10 text-primary rounded-full">
                   {service}
                 </span>
-              </motion.div>
+                </motion.div>
 
-              {/* Vendor Info */}
-              <div className="flex-1 space-y-4">
-                <h1 className="text-3xl font-bold text-foreground bg-gradient-to-r from-primary to-purple-600 bg-clip-text ">
-                  {organizationName}
-                </h1>
+                {/* Vendor Info */}
+                <div className="flex-1 space-y-4">
+                  <h1 className="text-3xl font-bold text-foreground bg-gradient-to-r from-primary to-purple-600 bg-clip-text ">
+                    {organizationName}
+                  </h1>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { icon: MapPin, text: address },
-                    { icon: Mail, text: email },
-                    { icon: User, text: name },
-                    { icon: Phone, text: mobile },
-                    { icon: Star, text: averageRating || 0 },
-                    { icon: Clock2, text: `Available: ${availableTime}` },
-                  ].map((item, index) => (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { icon: MapPin, text: address },
+                      { icon: Mail, text: email },
+                      { icon: User, text: name },
+                      { icon: Phone, text: mobile },
+                      { icon: Star, text: averageRating || 0 },
+                      { icon: Clock2, text: `Available: ${availableTime}` },
+                    ].map((item, index) => (
+                        <motion.div
+                            key={index}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg"
+                        >
+                          <table className="w-full border-collapse ">
+                            <tbody>
+                            <tr className="border-b  border-gray-200 flex items-center dark:border-gray-700">
+                              <td className="p-2">
+                                <item.icon className="w-5 h-5 text-primary" />
+                              </td>
+                              <td className="p-2   text-foreground">{item?.text}</td>
+                            </tr>
+                            </tbody>
+                          </table>
+                        </motion.div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Booking Section */}
+              <div className="mt-6 flex flex-col gap-4">
+                {existingBooking && (
                     <motion.div
-                      key={index}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="flex items-center gap-2 bg-yellow-500/10 p-4 rounded-lg"
                     >
-                      <table className="w-full border-collapse ">
-                        <tbody>
-                          <tr className="border-b  border-gray-200 flex items-center dark:border-gray-700">
-                            <td className="p-2">
-                              <item.icon className="w-5 h-5 text-primary" />
-                            </td>
-                            <td className="p-2   text-foreground">{item?.text}</td>
-                          </tr>
-                        </tbody>
-                      </table>
+                      <AlertCircle className="w-5 h-5 text-yellow-500" />
+                      <span className="text-yellow-500">
+                    You have a {existingBooking.status} booking with this vendor
+                  </span>
                     </motion.div>
+                )}
+
+                {/* Book Appointment Button */}
+                <motion.div whileHover={{ scale: 1.02 }}>
+                  <Button
+                      onClick={handleBookAppointmentClick}
+                      disabled={!!existingBooking || isBooking}
+                      className="w-full md:w-64 gap-2 relative overflow-hidden rounded-full"
+                  >
+                    <div className="flex items-center gap-2 relative z-10">
+                      <NotebookPen className="w-5 h-5" />
+                      {isBooking
+                          ? "Processing..."
+                          : existingBooking
+                              ? "Booking Exists"
+                              : "Book Appointment"}
+                    </div>
+                    {isBooking && (
+                        <motion.div
+                            className="absolute inset-0 bg-primary/10 z-0"
+                            animate={{
+                              background: [
+                                "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)",
+                                "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%)",
+                              ],
+                            }}
+                            transition={{ repeat: Infinity, duration: 1.5 }}
+                        />
+                    )}
+                  </Button>
+                </motion.div>
+              </div>
+            </div>
+
+            {/* Content Section */}
+            <div className="mt-8 grid md:grid-cols-2 gap-8">
+              {/* Description & Gallery */}
+              <div className="space-y-6">
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                >
+                  <h2 className="text-2xl font-bold text-foreground mb-4">
+                    Service Details
+                  </h2>
+                  <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                    {description || "No description provided"}
+                  </p>
+                </motion.div>
+
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                >
+                  <h2 className="text-2xl font-bold text-foreground mb-4">
+                    Gallery
+                  </h2>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {serviceImages?.length > 0 ? (
+                        serviceImages.map((image, index) => (
+                            <motion.div
+                                key={index}
+                                whileHover={{ scale: 1.03 }}
+                                className="aspect-square relative overflow-hidden border-2 rounded-xl border-muted cursor-pointer"
+                                onClick={() => setSelectedImageIndex(index)}
+                            >
+                              <Image
+                                  src={image}
+                                  alt={`Service image ${index + 1}`}
+                                  fill
+                                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                  className="object-cover"
+                                  priority
+                              />
+                            </motion.div>
+                        ))
+                    ) : (
+                        <div className="col-span-full text-center text-muted-foreground py-8">
+                          No gallery images available
+                        </div>
+                    )}
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Similar Services */}
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-foreground">
+                  Similar Services
+                </h2>
+                <div className="space-y-4">
+                  {similarServices.length > 0 ? (
+                      similarServices.slice(0, 3).map((service) => (
+                          <Link href={`/search/${service.id}`} key={service.id}>
+                            <motion.div
+                                whileHover={{ translateX: 5 }}
+                                className="flex items-center gap-4 p-4 bg-card hover:shadow-md transition-shadow border border-muted rounded-xl"
+                            >
+                              <div className="relative w-20 h-20 shrink-0">
+                                <Image
+                                    src={service.profileImage || "/placeholder-user.png"}
+                                    alt={service.organizationName}
+                                    fill
+                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                    className="rounded-xl object-cover"
+                                    priority
+                                />
+                              </div>
+                              <div>
+                                <h3 className="font-semibold text-foreground">
+                                  {service.organizationName}
+                                </h3>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  <User2 className="inline w-4 h-4 mr-1" />
+                                  {service.firstName + " " + service.lastName}
+                                </p>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  <MapPin className="inline w-4 h-4 mr-1" />
+                                  {service.address}
+                                </p>
+                                <p className="text-sm text-primary mt-2">
+                                  {service.service}
+                                </p>
+                              </div>
+                            </motion.div>
+                          </Link>
+                      ))
+                  ) : (
+                      <p className="text-center text-muted-foreground">
+                        No similar services available.
+                      </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Image Carousel Dialog */}
+          <Dialog
+              open={selectedImageIndex !== null}
+              onOpenChange={(open) => !open && setSelectedImageIndex(null)}
+          >
+            <DialogContent className="max-w-4xl p-0 bg-transparent border-none">
+              <Carousel
+                  opts={{
+                    startIndex: selectedImageIndex || 0,
+                    loop: true,
+                  }}
+                  className="w-full relative"
+              >
+                <DialogTitle className="text-center hidden">
+                  {selectedImageIndex + 1}
+                </DialogTitle>
+                <DialogDescription className="text-center hidden">
+                  {selectedImageIndex + 1}
+                </DialogDescription>
+                <CarouselContent>
+                  {serviceImages?.map((image, index) => (
+                      <CarouselItem key={index}>
+                        <div className="aspect-video relative">
+                          <Image
+                              src={image}
+                              alt={`Service image ${index + 1}`}
+                              fill
+                              sizes="(max-width: 768px) 100vw, 80vw"
+                              className="object-contain bg-black/10 dark:bg-white/10 rounded-lg"
+                              priority
+                          />
+                        </div>
+                      </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <div className="absolute left-12 md:left-4 top-1/2 -translate-y-1/2">
+                  <CarouselPrevious className="h-12 w-12 bg-background/50 hover:bg-background/80" />
+                </div>
+                <div className="absolute right-12 md:right-4 top-1/2 -translate-y-1/2">
+                  <CarouselNext className="h-12 w-12 bg-background/50 hover:bg-background/80" />
+                </div>
+              </Carousel>
+            </DialogContent>
+          </Dialog>
+
+          {/* Booking Sheet */}
+          <Sheet open={showBookingSheet} onOpenChange={setShowBookingSheet}>
+            <SheetContent className="w-full sm:w-[400px]">
+              <SheetHeader>
+                <SheetTitle>Book Appointment</SheetTitle>
+                <SheetDescription>
+                  Select a date and time for your booking.
+                </SheetDescription>
+              </SheetHeader>
+
+              {/* Date Picker */}
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  Select Date
+                </h3>
+                <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    disabled={isDateDisabled}
+                    className="rounded-md border"
+                />
+              </div>
+
+              {/* Time Selection */}
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  Select Time
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {timeSlots.map((time, index) => (
+                      <Button
+                          key={index}
+                          variant={selectedTime === time ? "default" : "outline"}
+                          onClick={() => setSelectedTime(time)}
+                          disabled={isTimeSlotDisabled(time)}
+                      >
+                        {time}
+                      </Button>
                   ))}
                 </div>
               </div>
-            </div>
 
-            {/* Booking Section */}
-            <div className="mt-6 flex flex-col gap-4">
-              {existingBooking && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex items-center gap-2 bg-yellow-500/10 p-4 rounded-lg"
-                >
-                  <AlertCircle className="w-5 h-5 text-yellow-500" />
-                  <span className="text-yellow-500">
-                    You have a {existingBooking.status} booking with this vendor
-                  </span>
-                </motion.div>
-              )}
-
-              {/* Book Appointment Button */}
-              <motion.div whileHover={{ scale: 1.02 }}>
+              {/* Book Button */}
+              <div className="mt-6">
                 <Button
-                  onClick={handleBookAppointmentClick}
-                  disabled={!!existingBooking || isBooking}
-                  className="w-full md:w-64 gap-2 relative overflow-hidden rounded-full"
+                    onClick={handleBooking}
+                    disabled={!selectedDate || !selectedTime || isBooking}
+                    className="w-full"
                 >
-                  <div className="flex items-center gap-2 relative z-10">
-                    <NotebookPen className="w-5 h-5" />
-                    {isBooking
-                      ? "Processing..."
-                      : existingBooking
-                      ? "Booking Exists"
-                      : "Book Appointment"}
-                  </div>
-                  {isBooking && (
-                    <motion.div
-                      className="absolute inset-0 bg-primary/10 z-0"
-                      animate={{
-                        background: [
-                          "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)",
-                          "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%)",
-                        ],
-                      }}
-                      transition={{ repeat: Infinity, duration: 1.5 }}
-                    />
-                  )}
+                  {isBooking ? "Processing..." : "Book Now"}
                 </Button>
-              </motion.div>
-            </div>
-          </div>
-
-          {/* Content Section */}
-          <div className="mt-8 grid md:grid-cols-2 gap-8">
-            {/* Description & Gallery */}
-            <div className="space-y-6">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-              >
-                <h2 className="text-2xl font-bold text-foreground mb-4">
-                  Service Details
-                </h2>
-                <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-                  {description || "No description provided"}
-                </p>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                <h2 className="text-2xl font-bold text-foreground mb-4">
-                  Gallery
-                </h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {serviceImages?.length > 0 ? (
-                    serviceImages.map((image, index) => (
-                      <motion.div
-                        key={index}
-                        whileHover={{ scale: 1.03 }}
-                        className="aspect-square relative overflow-hidden border-2 rounded-xl border-muted cursor-pointer"
-                        onClick={() => setSelectedImageIndex(index)}
-                      >
-                        <Image
-                          src={image}
-                          alt={`Service image ${index + 1}`}
-                          fill
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          className="object-cover"
-                          priority
-                        />
-                      </motion.div>
-                    ))
-                  ) : (
-                    <div className="col-span-full text-center text-muted-foreground py-8">
-                      No gallery images available
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            </div>
-
-            {/* Similar Services */}
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-foreground">
-                Similar Services
-              </h2>
-              <div className="space-y-4">
-                {similarServices.length > 0 ? (
-                  similarServices.slice(0, 3).map((service) => (
-                    <Link href={`/search/${service.id}`} key={service.id}>
-                      <motion.div
-                        whileHover={{ translateX: 5 }}
-                        className="flex items-center gap-4 p-4 bg-card hover:shadow-md transition-shadow border border-muted rounded-xl"
-                      >
-                        <div className="relative w-20 h-20 shrink-0">
-                          <Image
-                            src={service.profileImage || "/placeholder-user.png"}
-                            alt={service.organizationName}
-                            fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            className="rounded-xl object-cover"
-                            priority
-                          />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-foreground">
-                            {service.organizationName}
-                          </h3>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            <User2 className="inline w-4 h-4 mr-1" />
-                            {service.firstName + " " + service.lastName}
-                          </p>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            <MapPin className="inline w-4 h-4 mr-1" />
-                            {service.address}
-                          </p>
-                          <p className="text-sm text-primary mt-2">
-                            {service.service}
-                          </p>
-                        </div>
-                      </motion.div>
-                    </Link>
-                  ))
-                ) : (
-                  <p className="text-center text-muted-foreground">
-                    No similar services available.
-                  </p>
-                )}
               </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Image Carousel Dialog */}
-        <Dialog
-          open={selectedImageIndex !== null}
-          onOpenChange={(open) => !open && setSelectedImageIndex(null)}
-        >
-          <DialogContent className="max-w-4xl p-0 bg-transparent border-none">
-            <Carousel
-              opts={{
-                startIndex: selectedImageIndex || 0,
-                loop: true,
-              }}
-              className="w-full relative"
-            >
-              <DialogTitle className="text-center hidden">
-                {selectedImageIndex + 1}
-              </DialogTitle>
-              <DialogDescription className="text-center hidden">
-                {selectedImageIndex + 1}
-              </DialogDescription>
-              <CarouselContent>
-                {serviceImages?.map((image, index) => (
-                  <CarouselItem key={index}>
-                    <div className="aspect-video relative">
-                      <Image
-                        src={image}
-                        alt={`Service image ${index + 1}`}
-                        fill
-                        sizes="(max-width: 768px) 100vw, 80vw"
-                        className="object-contain bg-black/10 dark:bg-white/10 rounded-lg"
-                        priority
-                      />
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <div className="absolute left-12 md:left-4 top-1/2 -translate-y-1/2">
-                <CarouselPrevious className="h-12 w-12 bg-background/50 hover:bg-background/80" />
-              </div>
-              <div className="absolute right-12 md:right-4 top-1/2 -translate-y-1/2">
-                <CarouselNext className="h-12 w-12 bg-background/50 hover:bg-background/80" />
-              </div>
-            </Carousel>
-          </DialogContent>
-        </Dialog>
-
-        {/* Booking Sheet */}
-        <Sheet open={showBookingSheet} onOpenChange={setShowBookingSheet}>
-          <SheetContent className="w-full sm:w-[400px]">
-            <SheetHeader>
-              <SheetTitle>Book Appointment</SheetTitle>
-              <SheetDescription>
-                Select a date and time for your booking.
-              </SheetDescription>
-            </SheetHeader>
-
-            {/* Date Picker */}
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                Select Date
-              </h3>
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                disabled={isDateDisabled} // Disable past dates and today if the current time exceeds the last slot
-                className="rounded-md border"
-              />
-            </div>
-
-            {/* Time Selection */}
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                Select Time
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {timeSlots.map((time, index) => (
-                  <Button
-                    key={index}
-                    variant={selectedTime === time ? "default" : "outline"}
-                    onClick={() => setSelectedTime(time)}
-                    disabled={isTimeSlotDisabled(time)} // Disable if the time is booked or in the past
-                  >
-                    {time}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Book Button */}
-            <div className="mt-6">
-              <Button
-                onClick={handleBooking}
-                disabled={!selectedDate || !selectedTime || isBooking}
-                className="w-full"
-              >
-                {isBooking ? "Processing..." : "Book Now"}
-              </Button>
-            </div>
-          </SheetContent>
-        </Sheet>
-      </div>
-    </ProtectedRoute>
+            </SheetContent>
+          </Sheet>
+        </div>
+      </ProtectedRoute>
   )
 }
 

@@ -27,7 +27,9 @@ import { ModeToggle } from "@/components/ToggleTheme"
 import { motion, AnimatePresence } from "framer-motion"
 import Loading from "@/app/loading"
 import { HamburgerMenuIcon } from "@radix-ui/react-icons"
+import {HistoryIcon} from "lucide-react";
 
+import {logoutUser} from "@/lib/logoutUser";
 const AdminLayout = ({ children }) => {
   const pathname = usePathname()
   const router = useRouter()
@@ -70,13 +72,12 @@ const AdminLayout = ({ children }) => {
       icon: <FiHome className="w-5 h-5" />,
       path: "/admin",
     },
- 
+
     {
       name: "Profile",
       icon: <RiProfileLine className="w-5 h-5" />,
       path: "/admin/profile",
     },
- 
   ]
   const mainNav = [
     {
@@ -98,7 +99,7 @@ const AdminLayout = ({ children }) => {
       name: "Services",
       icon: <RiCustomerService2Line className="w-5 h-5" />,
       path: "/admin/services",
-    },
+    }
   ]
   const dektopNav = [
     {
@@ -128,9 +129,10 @@ const AdminLayout = ({ children }) => {
     },
   ]
 
-  const handleLogout = () => {
-    auth.signOut()
-    router.push("/login")
+  const handleLogout = async () => {
+    await logoutUser()
+    // Optional: redirect after logout
+    window.location.href = "/login"
   }
 
   if (loading || !isClient) return <Loading />
@@ -138,7 +140,7 @@ const AdminLayout = ({ children }) => {
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-background to-background/95">
       {/* Sidebar for Desktop */}
-      <motion.aside 
+      <motion.aside
         initial={{ x: -20, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         className={cn(
@@ -150,7 +152,7 @@ const AdminLayout = ({ children }) => {
           {/* Logo */}
           <div className="p-6 flex mx-auto">
             <Link href="/admin">
-              <motion.div 
+              <motion.div
                 whileHover={{ scale: 1.05 }}
                 className="flex items-center"
               >
@@ -165,7 +167,7 @@ const AdminLayout = ({ children }) => {
               </motion.div>
             </Link>
           </div>
-          
+
           {/* User profile */}
           {user && (
             <div className="px-4 pb-6">
@@ -262,7 +264,7 @@ const AdminLayout = ({ children }) => {
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
                   </Button>
                 </div>
-                
+
                 {/* User profile for mobile */}
                 {user && (
                   <div className="p-4">
@@ -284,7 +286,7 @@ const AdminLayout = ({ children }) => {
                     </div>
                   </div>
                 )}
-                
+
                 {/* Mobile navigation */}
                 <nav className="flex-1 px-2 py-4 space-y-1">
                   {bottomNav.map((item, index) => (
@@ -304,7 +306,7 @@ const AdminLayout = ({ children }) => {
                     </Link>
                   ))}
                 </nav>
-                
+
                 {/* Bottom mobile actions */}
                 <div className="p-4 border-t border-border/40">
                   <div className="flex items-center justify-between">

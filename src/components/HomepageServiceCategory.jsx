@@ -1,155 +1,145 @@
-"use client"
-import { useEffect, useState } from "react"
-import { firestore } from "@/context/Firebase"
-import { collection, getDocs, query, orderBy, where } from "firebase/firestore"
-import { Button } from "@/components/ui/button"
-import { Plus, ArrowRight, ArrowLeft, Star, MapPin } from "lucide-react"
-import Link from "next/link"
-import Image from "next/image"
-import { Skeleton } from "@/components/ui/skeleton"
-import { motion, AnimatePresence } from "framer-motion"
+"use client";
+import { useEffect, useState } from "react";
+import { firestore } from "@/context/Firebase";
+import { collection, getDocs, query, orderBy, where } from "firebase/firestore";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, ArrowLeft, Star, MapPin } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
+import { Skeleton } from "@/components/ui/skeleton";
+import { motion, AnimatePresence } from "framer-motion";
 
 const HomepageServiceCategory = () => {
-  const [services, setServices] = useState([])
-  const [vendors, setVendors] = useState([])
-  const [filteredVendors, setFilteredVendors] = useState([])
-  const [selectedService, setSelectedService] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [currentVendorPage, setCurrentVendorPage] = useState(1)
-  const vendorsPerPage = 8
+  const [services, setServices] = useState([]);
+  const [vendors, setVendors] = useState([]);
+  const [filteredVendors, setFilteredVendors] = useState([]);
+  const [selectedService, setSelectedService] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [currentVendorPage, setCurrentVendorPage] = useState(1);
+  const vendorsPerPage = 8;
 
-  // Fetch services
   useEffect(() => {
     const fetchServices = async () => {
       try {
         const servicesQuery = query(
           collection(firestore, "service"),
           orderBy("id", "asc")
-        )
-        const querySnapshot = await getDocs(servicesQuery)
+        );
+        const querySnapshot = await getDocs(servicesQuery);
         const servicesData = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-        }))
-        setServices(servicesData)
+        }));
+        setServices(servicesData);
       } catch (error) {
-        console.error("Error fetching services:", error)
+        console.error("Error fetching services:", error);
       }
-    }
+    };
 
-    fetchServices()
-  }, [])
+    fetchServices();
+  }, []);
 
-  // Fetch vendors with average ratings
   useEffect(() => {
     const fetchVendors = async () => {
-      setLoading(true)
+      setLoading(true);
       try {
-        const querySnapshot = await getDocs(collection(firestore, "users"))
+        const querySnapshot = await getDocs(collection(firestore, "users"));
         const vendorsData = querySnapshot.docs
           .map((doc) => ({
             id: doc.id,
             ...doc.data(),
           }))
-          .filter((vendor) => vendor.role === "vendor")
+          .filter((vendor) => vendor.role === "vendor");
 
-        // Fetch average ratings for each vendor
         const vendorsWithRatings = await Promise.all(
           vendorsData.map(async (vendor) => {
             const bookingsQuery = query(
               collection(firestore, "bookings"),
               where("vendorId", "==", vendor.id)
-            )
-            const bookingsSnapshot = await getDocs(bookingsQuery)
-            const bookings = bookingsSnapshot.docs.map((doc) => doc.data())
-
-            // Calculate average rating
-            const totalRatings = bookings.filter((b) => b.rating).length
-            const ratingSum = bookings.reduce((sum, b) => sum + (b.rating || 0), 0)
-            const averageRating = totalRatings > 0 ? ratingSum / totalRatings : 0
+            );
+            const bookingsSnapshot = await getDocs(bookingsQuery);
+            const bookings = bookingsSnapshot.docs.map((doc) => doc.data());
+            const totalRatings = bookings.filter((b) => b.rating).length;
+            const ratingSum = bookings.reduce(
+              (sum, b) => sum + (b.rating || 0),
+              0
+            );
+            const averageRating =
+              totalRatings > 0 ? ratingSum / totalRatings : 0;
 
             return {
               ...vendor,
-              // averageRating: parseFloat(averageRating.toFixed(1)), // Round to 1 decimal place
-            }
+            };
           })
-        )
-
-        setVendors(vendorsWithRatings)
-        setFilteredVendors(vendorsWithRatings)
+        );
+        setVendors(vendorsWithRatings);
+        setFilteredVendors(vendorsWithRatings);
       } catch (error) {
-        console.error("Error fetching vendors:", error)
+        console.error("Error fetching vendors:", error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
+    fetchVendors();
+  }, []);
 
-    fetchVendors()
-  }, [])
-
-  // Filter vendors based on selected service
   const handleServiceClick = (serviceName) => {
     if (selectedService === serviceName) {
-      setSelectedService(null)
-      setFilteredVendors(vendors)
+      setSelectedService(null);
+      setFilteredVendors(vendors);
     } else {
-      setSelectedService(serviceName)
-      setLoading(true)
+      setSelectedService(serviceName);
+      setLoading(true);
       setTimeout(() => {
         setFilteredVendors(
           vendors.filter((vendor) => vendor.service === serviceName)
-        )
-        setCurrentVendorPage(1)
-        setLoading(false)
-      }, 500)
+        );
+        setCurrentVendorPage(1);
+        setLoading(false);
+      }, 500);
     }
-  }
+  };
 
-  // Handle page change with loader
   const handlePageChange = (newPage) => {
-    setLoading(true)
+    setLoading(true);
     setTimeout(() => {
-      setCurrentVendorPage(newPage)
-      setLoading(false)
-    }, 500)
-  }
+      setCurrentVendorPage(newPage);
+      setLoading(false);
+    }, 500);
+  };
 
-  // Pagination logic
-  const totalVendorPages = Math.ceil(filteredVendors.length / vendorsPerPage)
+  const totalVendorPages = Math.ceil(filteredVendors.length / vendorsPerPage);
   const paginatedVendors = filteredVendors.slice(
     (currentVendorPage - 1) * vendorsPerPage,
     currentVendorPage * vendorsPerPage
-  )
+  );
 
   const fadeIn = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { duration: 0.3 } },
-  }
+  };
 
   const stagger = {
     visible: { transition: { staggerChildren: 0.1 } },
-  }
+  };
 
   const cardAnimation = {
     hidden: { scale: 0.95, opacity: 0 },
     visible: { scale: 1, opacity: 1 },
-  }
+  };
 
   return (
     <section className="pb-24 pt-5 px-4 sm:px-6 lg:px-20 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <div className="max-w-7xl mx-auto">
-        {/* Service Categories */}
         <div className="mb-20">
           <div className="flex items-center justify-between mb-10">
             <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white">
-              Explore{" "}
+              Explore
               <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
                 Services
               </span>
             </h2>
           </div>
-
-          {/* Responsive Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5">
             {services.slice(0, 5).map((service) => (
               <motion.button
@@ -176,8 +166,6 @@ const HomepageServiceCategory = () => {
                 <span className="text-lg font-bold">{service.name}</span>
               </motion.button>
             ))}
-
-            {/* Discover More Card */}
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -189,13 +177,13 @@ const HomepageServiceCategory = () => {
                 className="flex flex-col items-center space-y-2"
               >
                 <ArrowRight className="w-10 h-10" />
-                <span className="text-lg font-bold line-clamp-1">Categories</span>
+                <span className="text-lg font-bold line-clamp-1">
+                  Categories
+                </span>
               </Link>
             </motion.div>
           </div>
         </div>
-
-        {/* Vendor Section */}
         <div className="space-y-10">
           <h2 className="text-4xl font-extrabold text-gray-900 dark:text-white">
             {selectedService
@@ -265,13 +253,8 @@ const HomepageServiceCategory = () => {
                             className="object-cover transform group-hover:scale-105 transition-transform duration-300"
                             priority
                           />
-
-                          {/* Gradient Overlay */}
                           <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/30 to-transparent" />
-
-                          {/* Content Overlay */}
                           <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                            {/* Top Badges */}
                             <div className="flex justify-between items-start mb-4">
                               <span className="bg-blue-500/90 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm font-semibold">
                                 {vendor.service}
@@ -283,8 +266,6 @@ const HomepageServiceCategory = () => {
                                 </span>
                               </div>
                             </div>
-
-                            {/* Main Content */}
                             <div className="space-y-3">
                               <h3 className="text-2xl font-bold truncate">
                                 {vendor.organizationName}
@@ -311,8 +292,6 @@ const HomepageServiceCategory = () => {
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* Pagination */}
           {totalVendorPages > 1 && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -332,7 +311,6 @@ const HomepageServiceCategory = () => {
               <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                 Page {currentVendorPage} of {totalVendorPages}
               </div>
-
               <Button
                 onClick={() => handlePageChange(currentVendorPage + 1)}
                 disabled={currentVendorPage === totalVendorPages || loading}
@@ -347,7 +325,6 @@ const HomepageServiceCategory = () => {
         </div>
       </div>
     </section>
-  )
-}
-
-export default HomepageServiceCategory
+  );
+};
+export default HomepageServiceCategory;

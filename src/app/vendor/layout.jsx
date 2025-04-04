@@ -28,6 +28,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Loading from "@/app/loading";
 import { HamburgerMenuIcon } from "@radix-ui/react-icons";
 
+import {logoutUser} from "@/lib/logoutUser";
 const VendorLayout = ({ children }) => {
   const pathname = usePathname();
   const router = useRouter();
@@ -137,10 +138,11 @@ const VendorLayout = ({ children }) => {
     },
   ];
 
-  const handleLogout = () => {
-    auth.signOut();
-    router.push("/login");
-  };
+  const handleLogout = async () => {
+    await logoutUser()
+    // Optional: redirect after logout
+    window.location.href = "/login"
+  }
 
   if (loading || !isClient) return <Loading />;
 
@@ -278,7 +280,7 @@ const VendorLayout = ({ children }) => {
               <Button
                 variant="destructive"
                 size="sm"
-                className="dark:text-muted-foreground rounded-[5px]  hover:text-foreground flex items-center gap-2"
+                className=" rounded-[5px]   flex items-center gap-2"
                 onClick={handleLogout}
               >
                 <FiLogOut className="w-4 h-4" />
@@ -387,7 +389,7 @@ const VendorLayout = ({ children }) => {
                     <Button
                       variant="destructive"
                       size="sm"
-                      className="text-muted-foreground rounded-[5px] hover:text-foreground flex items-center gap-2"
+                      className=" rounded-[5px]  flex items-center gap-2"
                       onClick={handleLogout}
                     >
                       <FiLogOut className="w-4 h-4" />

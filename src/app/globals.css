@@ -9,7 +9,36 @@ html {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+/* Leaflet Map Styles */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  z-index: 0;
+}
 
+.leaflet-control-attribution {
+  font-size: 11px;
+  background-color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 6px;
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.15);
+}
+
+.leaflet-popup-content {
+  margin: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.leaflet-marker-icon {
+  transition: transform 0.2s ease;
+}
+
+.leaflet-marker-icon:hover {
+  transform: scale(1.2);
+}
 /* Hide scrollbar for IE, Edge, and Firefox */
 .scrollbar-hide {
   -ms-overflow-style: none; /* IE and Edge */
@@ -20,27 +49,27 @@ html {
     /* Light Theme */
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
-    
+
     --primary: 262 67% 58%;
     --primary-foreground: 210 40% 98%;
-    
+
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
-    
+
     --accent: 240 4.8% 95.9%;
     --accent-foreground: 240 5.9% 10%;
-    
+
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
-    
+
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 262 67% 40%;
-    
+
     /* Gradient Colors */
     --gradient-from: 212 86% 64%;
     --gradient-to: 262 67% 58%;
-    
+
     /* Chart Colors */
     --chart-1: 212 86% 64%;
     --chart-2: 152 69% 45%;
@@ -53,27 +82,27 @@ html {
     /* Dark Theme */
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
-    
+
     --primary: 263 67% 58%;
     --primary-foreground: 210 40% 98%;
-    
+
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
-    
+
     --accent: 240 3.7% 15.9%;
     --accent-foreground: 0 0% 98%;
-    
+
     --destructive: 0 62.8% 40.6%;
     --destructive-foreground: 0 0% 98%;
-    
+
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 263 67% 40%;
-    
+
     /* Gradient Colors */
     --gradient-from: 212 86% 64%;
     --gradient-to: 263 67% 58%;
-    
+
     /* Chart Colors */
     --chart-1: 212 86% 64%;
     --chart-2: 152 69% 55%;

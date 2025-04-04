@@ -96,7 +96,7 @@ const Profile = () => {
       toast({
         title: "Image Uploaded",
         description: "Profile image updated successfully",
-        variant: "default",
+        variant: "success",
       })
     } catch (error) {
       console.error("Error uploading image:", error)

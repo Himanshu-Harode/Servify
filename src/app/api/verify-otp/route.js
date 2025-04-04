@@ -1,53 +1,62 @@
-// app/api/verify-otp/route.js
-import { NextResponse } from "next/server";
 import { firestore } from "@/context/Firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, deleteDoc } from "firebase/firestore";
+import { NextResponse } from "next/server";
 
 export async function POST(request) {
-  const { email, otp } = await request.json();
-
-  console.log("Received email:", email); // Debugging
-  console.log("Received OTP:", otp); // Debugging
-
-  if (!email || !otp) {
-    return NextResponse.json(
-      { message: "Email and OTP are required" },
-      { status: 400 }
-    );
-  }
-
   try {
-    // Fetch the OTP from Firestore
-    const otpRef = doc(firestore, "otps", email); // Use email as the document ID
+    const { email, otp } = await request.json();
+
+    if (!email || !otp) {
+      return NextResponse.json(
+          { error: "Email and OTP are required" },
+          { status: 400 }
+      );
+    }
+
+    // Fetch OTP from Firestore
+    const otpRef = doc(firestore, "otps", email);
     const otpDoc = await getDoc(otpRef);
 
     if (!otpDoc.exists()) {
-      console.log("OTP not found for email:", email); // Debugging
-      return NextResponse.json({ message: "OTP not found" }, { status: 404 });
-    }
-
-    const storedOtp = otpDoc.data().otp; // Ensure the OTP is stored in the "otp" field
-    const createdAt = otpDoc.data().createdAt; // Timestamp as a string
-
-    console.log("Stored OTP:", storedOtp); // Debugging
-    console.log("User OTP:", otp); // Debugging
-
-    if (storedOtp === otp) {
-      // Clear OTP after verification
-      await setDoc(otpRef, { otp: null, createdAt: null });
       return NextResponse.json(
-        { message: "OTP verified successfully" },
-        { status: 200 }
+          { error: "OTP not found or expired" },
+          { status: 404 }
       );
-    } else {
-      console.log("Invalid OTP provided"); // Debugging
-      return NextResponse.json({ message: "Invalid OTP" }, { status: 400 });
     }
+
+    const { otp: storedOtp, createdAt } = otpDoc.data();
+    const otpCreatedAt = new Date(createdAt);
+    const now = new Date();
+
+    // Check if OTP has expired (valid for 5 minutes)
+    if ((now - otpCreatedAt) / (1000 * 60) > 5) {
+      await deleteDoc(otpRef); // Remove expired OTP
+      return NextResponse.json(
+          { error: "OTP has expired" },
+          { status: 400 }
+      );
+    }
+
+    if (storedOtp !== otp) {
+      return NextResponse.json(
+          { error: "Invalid OTP" },
+          { status: 400 }
+      );
+    }
+
+    // OTP verified successfully, delete OTP from Firestore
+    await deleteDoc(otpRef);
+
+    return NextResponse.json({
+      success: true,
+      message: "OTP verified successfully",
+    }, { status: 200 });
+
   } catch (error) {
-    console.error("Error verifying OTP:", error); // Debugging
+    console.error("OTP verification error:", error);
     return NextResponse.json(
-      { message: "Failed to verify OTP" },
-      { status: 500 }
+        { error: error.message || "Failed to verify OTP" },
+        { status: 500 }
     );
   }
 }
