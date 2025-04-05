@@ -30,6 +30,7 @@ import { HamburgerMenuIcon } from "@radix-ui/react-icons"
 import {HistoryIcon} from "lucide-react";
 
 import {logoutUser} from "@/lib/logoutUser";
+import {BsQuestionCircle} from "react-icons/bs";
 const AdminLayout = ({ children }) => {
   const pathname = usePathname()
   const router = useRouter()
@@ -71,6 +72,10 @@ const AdminLayout = ({ children }) => {
       name: "Dashboard",
       icon: <FiHome className="w-5 h-5" />,
       path: "/admin",
+    }, {
+      name: "Users Query",
+      icon: <BsQuestionCircle className="w-5 h-5" />,
+      path: "/admin/users-query",
     },
 
     {
@@ -101,7 +106,7 @@ const AdminLayout = ({ children }) => {
       path: "/admin/services",
     }
   ]
-  const dektopNav = [
+  const desktopNav = [
     {
       name: "Dashboard",
       icon: <FiHome className="w-5 h-5" />,
@@ -126,6 +131,10 @@ const AdminLayout = ({ children }) => {
       name: "Profile",
       icon: <RiProfileLine className="w-5 h-5" />,
       path: "/admin/profile",
+    }, {
+      name: "Users Query",
+      icon: <BsQuestionCircle  className="w-5 h-5" />,
+      path: "/admin/users-query",
     },
   ]
 
@@ -194,7 +203,7 @@ const AdminLayout = ({ children }) => {
 
           {/* Navigation */}
           <nav className="flex-1 px-3 space-y-1">
-            {dektopNav.map((item, index) => (
+            {desktopNav.map((item, index) => (
               <Link
                 key={item.name}
                 href={item.path}
@@ -218,7 +227,7 @@ const AdminLayout = ({ children }) => {
               <Button
                 variant="destructive"
                 size="sm"
-                className="dark:text-muted-foreground rounded-[5px] hover:text-foreground flex items-center gap-2"
+                className="dark:text-white rounded-[5px] hover:text-gray-100 flex items-center gap-2"
                 onClick={handleLogout}
               >
                 <FiLogOut className="w-4 h-4" />

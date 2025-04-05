@@ -1,9 +1,9 @@
 "use client"
-import React, { useState, useEffect } from "react"
-import { useToast } from "@/hooks/use-toast"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import React, {useState, useEffect} from "react"
+import {useToast} from "@/hooks/use-toast"
+import {Button} from "@/components/ui/button"
+import {Input} from "@/components/ui/input"
+import {Label} from "@/components/ui/label"
 import {
     Table,
     TableBody,
@@ -12,7 +12,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { FiEdit, FiTrash, FiBriefcase, FiKey } from "react-icons/fi"
+import {FiEdit, FiTrash, FiBriefcase, FiKey} from "react-icons/fi"
 import {
     Select,
     SelectContent,
@@ -20,7 +20,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { firestore, auth } from "@/context/Firebase"
+import {firestore, auth} from "@/context/Firebase"
 import {
     collection,
     doc,
@@ -29,17 +29,17 @@ import {
     onSnapshot,
     getDocs
 } from "firebase/firestore"
-import { sendPasswordResetEmail } from "firebase/auth"
+import {sendPasswordResetEmail} from "firebase/auth"
 
 const VendorsSection = () => {
-    const { toast } = useToast()
+    const {toast} = useToast()
     const [vendors, setVendors] = useState([])
     const [services, setServices] = useState([])
     const [editVendor, setEditVendor] = useState(null)
     const [formData, setFormData] = useState({
         name: "",
         mobile: "",
-        service: [],
+        service: "",
         organizationName: "",
         organizationAddress: ""
     })
@@ -56,7 +56,7 @@ const VendorsSection = () => {
                             id: doc.id,
                             name: `${data.firstName} ${data.lastName}`.trim(),
                             mobile: data.mobile,
-                            service: Array.isArray(data.service) ? data.service : [],
+                            service: data.service || "",
                             organizationName: data.organizationName || "",
                             organizationAddress: data.organizationAddress || "",
                             email: data.email
@@ -95,13 +95,7 @@ const VendorsSection = () => {
     }, [toast])
 
     const handleInputChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value })
-    }
-
-    const handleServiceChange = (value) => {
-        // Convert single value to array if needed
-        const servicesArray = Array.isArray(value) ? value : [value].filter(Boolean)
-        setFormData({ ...formData, service: servicesArray })
+        setFormData({...formData, [e.target.name]: e.target.value})
     }
 
     const handleSubmit = async (e) => {
@@ -215,17 +209,15 @@ const VendorsSection = () => {
                             </div>
 
                             <div>
-                                <Label>Services</Label>
+                                <Label>Service</Label>
                                 <Select
-                                    value={formData.service[0] || ""} // Handle single value for Select
+                                    value={formData.service}
                                     onValueChange={(value) => {
-                                        // Convert to array and update state
-                                        const servicesArray = Array.isArray(value) ? value : [value]
-                                        setFormData({...formData, service: servicesArray})
+                                        setFormData({...formData, service: value})
                                     }}
                                 >
                                     <SelectTrigger className="rounded-xl h-12">
-                                        <SelectValue placeholder="Select services" />
+                                        <SelectValue placeholder="Select service"/>
                                     </SelectTrigger>
                                     <SelectContent className="rounded-xl bg-background">
                                         {services.map((service) => (
@@ -284,34 +276,33 @@ const VendorsSection = () => {
                 <Table>
                     <TableHeader className="bg-muted/50">
                         <TableRow>
+                            <TableHead className="rounded-tl-2xl">Sr</TableHead>
                             <TableHead className="rounded-tl-2xl">Vendor</TableHead>
-                            <TableHead className="hidden md:table-cell">Services</TableHead>
+                            <TableHead className="hidden md:table-cell">Service</TableHead>
                             <TableHead className="hidden lg:table-cell">Organization</TableHead>
                             <TableHead className="rounded-tr-2xl">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {vendors.map((vendor) => (
+                        {vendors.map((vendor,index) => (
                             <TableRow key={vendor.id} className="hover:bg-muted/10 transition-colors">
+                                <TableCell className="hidden md:table-cell">
+                  <span className="px-2 py-1   rounded-full text-xs">
+                    {index+1}
+                  </span>
+                                </TableCell>
                                 <TableCell>
                                     <div className="flex flex-col">
                                         <span className="font-medium">{vendor.name}</span>
-                                        <span className="text-sm text-muted-foreground md:hidden">
-                      {vendor.mobile}
-                    </span>
+                                        <span className="text-sm text-muted-foreground ">
+                                    {vendor.mobile}
+                                    </span>
                                     </div>
                                 </TableCell>
                                 <TableCell className="hidden md:table-cell">
-                                    <div className="flex flex-wrap gap-1">
-                                        {(vendor.service || []).map((service, index) => (
-                                            <span
-                                                key={index}
-                                                className="px-2 py-1 bg-accent rounded-full text-xs"
-                                            >
-                        {service}
-                      </span>
-                                        ))}
-                                    </div>
+                  <span className="px-4 py-1 bg-primary/80 text-white  rounded-full text-xs">
+                    {vendor.service}
+                  </span>
                                 </TableCell>
                                 <TableCell className="hidden lg:table-cell">
                                     <div className="flex flex-col">
@@ -331,14 +322,14 @@ const VendorsSection = () => {
                                                 setFormData({
                                                     name: vendor.name,
                                                     mobile: vendor.mobile,
-                                                    service: vendor.service || [],
+                                                    service: vendor.service || "",
                                                     organizationName: vendor.organizationName,
                                                     organizationAddress: vendor.organizationAddress
                                                 })
                                             }}
                                             className="rounded-full p-2 h-8 w-8"
                                         >
-                                            <FiEdit className="w-4 h-4" />
+                                            <FiEdit className="w-4 h-4"/>
                                         </Button>
                                         <Button
                                             variant="outline"
@@ -346,7 +337,7 @@ const VendorsSection = () => {
                                             onClick={() => handlePasswordReset(vendor.email)}
                                             className="rounded-full p-2 h-8 w-8"
                                         >
-                                            <FiKey className="w-4 h-4" />
+                                            <FiKey className="w-4 h-4"/>
                                         </Button>
                                         <Button
                                             variant="destructive"
@@ -354,7 +345,7 @@ const VendorsSection = () => {
                                             onClick={() => handleDelete(vendor.id)}
                                             className="rounded-full p-2 h-8 w-8"
                                         >
-                                            <FiTrash className="w-4 h-4" />
+                                            <FiTrash className="w-4 h-4"/>
                                         </Button>
                                     </div>
                                 </TableCell>
@@ -366,7 +357,7 @@ const VendorsSection = () => {
 
             {vendors.length === 0 && (
                 <div className="text-center py-12 text-muted-foreground">
-                    <FiBriefcase className="mx-auto h-12 w-12 mb-4" />
+                    <FiBriefcase className="mx-auto h-12 w-12 mb-4"/>
                     <p>No vendors found</p>
                 </div>
             )}

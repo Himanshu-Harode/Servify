@@ -251,7 +251,7 @@ export default function ServicesPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => editServiceHandler(service)}
-                  className="bg-primary rounded-[5px] text-primary-foreground hover:bg-primary/90"
+                  className="bg-primary rounded-[5px] text-primary-foreground hover:text-white/80 hover:bg-primary/90"
                 >
                   <Edit className="h-4 w-4 mr-2" />
                   Edit
