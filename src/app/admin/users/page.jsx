@@ -137,7 +137,7 @@ const UsersSection = () => {
         {/* Edit User Modal */}
         {editUser && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <Card className="p-6 w-[95%] md:w-[500px]">
+              <Card className="p-6 w-[95%] md:w-[500px] bg-background rounded-xl">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-semibold">Edit User</h2>
                   <Button
